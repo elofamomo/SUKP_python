@@ -1,6 +1,9 @@
 import numpy as np
+import yaml
+from pathlib import Path
+import os
 class SUKPLoader:
-    def __init__(self, file_path):
+    def __init__(self, yaml_path):
         """
         Loads SUKP instance data from a file.
         
@@ -12,10 +15,12 @@ class SUKPLoader:
         self.item_profits = None
         self.element_weights = None
         self.item_subsets = None  # List of lists: for each item, list of element indices it covers
-
+        file_path = self._load_sukp_config(yaml_path)
         self._load(file_path)
     
     def _load(self, file_path):
+        if not os.path.exists(file_path):
+            raise ValueError(f"File path {file_path} is not ready")
         with open(file_path, 'r') as f:
             f.readline().strip()
             f.readline().strip()
@@ -95,3 +100,43 @@ class SUKPLoader:
             'element_weights': self.element_weights,
             'item_subsets': self.item_subsets
         }
+    
+    def _load_sukp_config(self, yaml_path='config.yaml'):
+        with open(yaml_path, 'r') as f:
+            config = yaml.safe_load(f)
+        
+        data_config = config.get('sukp_data', {})
+        n = data_config.get('n')
+        m = data_config.get('m')
+        alpha = data_config.get('alpha')
+        beta = data_config.get('beta')
+        instance = data_config.get('instance')
+        missing_params = []
+        if n is None:
+            missing_params.append('n')
+        if m is None:
+            missing_params.append('m')
+        if alpha is None:
+            missing_params.append('alpha')
+        if beta is None:
+            missing_params.append('beta')
+        if instance is None:
+            missing_params.append('instance')
+        if missing_params:
+            raise ValueError(f"Missing required parameters in YAML: {', '.join(missing_params)}")
+        if instance not in (1,2):
+            raise ValueError("Instance must be 1 or 2")
+        base_path = "SUKP_instances_60"
+        if instance == 1:
+            instance_path = "Instances of Set I"
+        elif instance == 2:
+            instance_path = "Instances of Set II"
+        else:
+            raise ValueError("Instance value must be 1 or 2")
+        
+        alpha_str = f"{alpha:.2f}"
+        beta_str = f"{beta:.2f}"
+
+        file_name = f"sukp_{m}_{n}_{alpha_str}_{beta_str}.txt"
+        file_path = f"{base_path}/{instance_path}/{file_name}"
+        return file_path
