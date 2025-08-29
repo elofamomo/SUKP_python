@@ -1,7 +1,7 @@
 import numpy as np
 
 class SetUnionHandler:
-    def __init__(self, data):
+    def __init__(self, data, param):
         """
         Initializes the SetUnionHandler with data from SUKPLoader.
         
@@ -19,6 +19,7 @@ class SetUnionHandler:
         self.item_profits = data['item_profits']
         self.element_weights = data['element_weights']
         self.item_subsets = data['item_subsets']
+        self.penalty = param['penalty']
         
         self.selected_items = set()
         self.element_counts = np.zeros(self.n, dtype=int)
@@ -75,7 +76,7 @@ class SetUnionHandler:
                 self.total_weight -= self.element_weights[elem]
         return True
 
-    def get_value(self):
+    def get_profit(self):
         """
         Gets the current total profit (objective value).
         If the current total_weight > capacity, returns 0 (infeasible).
@@ -84,7 +85,7 @@ class SetUnionHandler:
         :return: float, the value (profit if feasible, else 0)
         """
         if self.total_weight > self.capacity:
-            return 0.0
+            return float('-inf')
         return self.total_profit
 
     def get_totals(self):
@@ -122,3 +123,28 @@ class SetUnionHandler:
         self.element_counts.fill(0)
         self.total_profit = 0.0
         self.total_weight = 0.0
+
+
+    def get_state(self):
+        return np.array([1.0 if i in self.selected_items else 0.0 for i in range(self.m)], dtype=float)
+    
+    def step(self, action):
+        if action < 0 or action > self.m:
+            raise ValueError(f"Action must be between 0 and {self.m}. Current action is {action}")
+
+        terminate = False
+        reward = 0.0
+        
+        if action == self.m:
+            reward = self.get_profit()
+            terminate = True
+        else:
+            added = self.add_item(action)
+            if added:
+                reward = 0.0
+            else:
+                reward = -self.penalty
+        
+        new_state = self.get_state()
+        return new_state, reward, terminate
+    

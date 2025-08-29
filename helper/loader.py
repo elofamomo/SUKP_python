@@ -9,13 +9,14 @@ class SUKPLoader:
         
         :param file_path: Path to the instance file.
         """
+        self.yaml_path = yaml_path
         self.m = None
         self.n = None
         self.capacity = None
         self.item_profits = None
         self.element_weights = None
         self.item_subsets = None  # List of lists: for each item, list of element indices it covers
-        file_path = self._load_sukp_config(yaml_path)
+        file_path = self._load_sukp_config(self.yaml_path)
         self._load(file_path)
     
     def _load(self, file_path):
@@ -140,3 +141,9 @@ class SUKPLoader:
         file_name = f"sukp_{m}_{n}_{alpha_str}_{beta_str}.txt"
         file_path = f"{base_path}/{instance_path}/{file_name}"
         return file_path
+    
+    def get_param(self):
+        with open(self.yaml_path, 'r') as f:
+            config = yaml.safe_load(f)
+        param = config.get('agent_param', {})
+        return param

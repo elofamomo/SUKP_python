@@ -1,14 +1,15 @@
 from collections import deque
 from networks.dqn import DeepQlearningNetwork
+from helper.set_handler import SetUnionHandler
 import torch.optim as optim
 import numpy as np
 import torch
 import torch.nn as nn
 
 class DQNAgent:
-    def __init__(self, state_size, action_size):
-        self.state_size = state_size
-        self.action_size = action_size
+    def __init__(self, env: SetUnionHandler):
+        self.state_size = env.m
+        self.action_size = env.n
         self.memory = deque(maxlen=10000)
         self.gamma = 0.99
         self.epsilon = 1.0
@@ -16,8 +17,9 @@ class DQNAgent:
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
-        self.model = DeepQlearningNetwork(state_size, action_size)
-        self.target_model = DeepQlearningNetwork(state_size, action_size)
+        self.env = env
+        self.model = DeepQlearningNetwork(self.state_size, self.action_size)
+        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.update_target_model()
 
