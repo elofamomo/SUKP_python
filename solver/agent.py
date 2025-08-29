@@ -1,0 +1,61 @@
+from collections import deque
+from networks.dqn import DeepQlearningNetwork
+import torch.optim as optim
+import numpy as np
+import torch
+import torch.nn as nn
+
+class DQNAgent:
+    def __init__(self, state_size, action_size):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.memory = deque(maxlen=10000)
+        self.gamma = 0.99
+        self.epsilon = 1.0
+        self.epsilon_min = 0.1
+        self.epsilon_decay = 0.995
+        self.learning_rate = 0.001
+        self.rng = np.random.default_rng(42)
+        self.model = DeepQlearningNetwork(state_size, action_size)
+        self.target_model = DeepQlearningNetwork(state_size, action_size)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.update_target_model()
+
+    def update_target_model(self):
+        self.target_model.load_state_dict(self.model.state_dict())
+    
+    def remember(self, state, action, reward, next_state, terminate):
+        self.memory.append((state, action, reward, next_state, terminate))
+
+    def action(self, state):
+        if self.rng.random() <= self.epsilon:
+            return self.rng.integers(self.action_size)
+        with torch.no_grad():
+            state_tensor = torch.FloatTensor(state)
+            action_values = self.model(state_tensor)
+            return action_values.argmax().item()
+        return None
+    
+    def replay(self, batch_size):
+        if len(self.memory) < batch_size:
+            return
+        minibatch = list(self.memory)
+        minibatch = self.rng.choice(minibatch, size=batch_size, replace=False)
+
+        for state, action, reward, next_state, terminate in minibatch:
+            state_tensor = torch.FloatTensor(state)
+            next_state_tensor = torch.FloatTensor(next_state)
+            target = reward 
+            if not terminate:
+                target += self.gamma * self.target_model(next_state_tensor).max().item()
+            target_f = self.model(state_tensor)
+            target_f = target_f.clone()
+            target_f[action] = target
+            self.optimizer.zero_grad()
+            loss = nn.MSELoss()(self.model(state_tensor), target_f)
+            loss.backward()
+            self.optimizer.step()
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+        
+
