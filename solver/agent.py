@@ -9,7 +9,7 @@ import torch.nn as nn
 class DQNAgent:
     def __init__(self, env: SetUnionHandler):
         self.state_size = env.m
-        self.action_size = env.n
+        self.action_size = env.m + 1   #an action represent for terminate
         self.memory = deque(maxlen=10000)
         self.gamma = 0.99
         self.epsilon = 1.0
@@ -41,9 +41,8 @@ class DQNAgent:
     def replay(self, batch_size):
         if len(self.memory) < batch_size:
             return
-        minibatch = list(self.memory)
-        minibatch = self.rng.choice(minibatch, size=batch_size, replace=False)
-
+        indies = self.rng.choice(len(self.memory), size=batch_size, replace=False)
+        minibatch = [self.memory[i] for i in indies]
         for state, action, reward, next_state, terminate in minibatch:
             state_tensor = torch.FloatTensor(state)
             next_state_tensor = torch.FloatTensor(next_state)
@@ -59,5 +58,7 @@ class DQNAgent:
             self.optimizer.step()
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+    
+    
         
 

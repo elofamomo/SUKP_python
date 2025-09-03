@@ -15,6 +15,7 @@ class SUKPLoader:
         self.capacity = None
         self.item_profits = None
         self.element_weights = None
+        self.file_name = None
         self.item_subsets = None  # List of lists: for each item, list of element indices it covers
         file_path = self._load_sukp_config(self.yaml_path)
         self._load(file_path)
@@ -137,9 +138,11 @@ class SUKPLoader:
         
         alpha_str = f"{alpha:.2f}"
         beta_str = f"{beta:.2f}"
-
-        file_name = f"sukp_{m}_{n}_{alpha_str}_{beta_str}.txt"
-        file_path = f"{base_path}/{instance_path}/{file_name}"
+        file_name = f"sukp_{m}_{n}_{alpha_str}_{beta_str}"
+        file_name_txt = f"sukp_{m}_{n}_{alpha_str}_{beta_str}.txt"
+        file_path = f"{base_path}/{instance_path}/{file_name_txt}"
+        self.file_name = file_name
+        print(f"Working on {file_name}")
         return file_path
     
     def get_param(self):
@@ -147,3 +150,6 @@ class SUKPLoader:
             config = yaml.safe_load(f)
         param = config.get('agent_param', {})
         return param
+    
+    def get_filename(self):
+        return self.file_name

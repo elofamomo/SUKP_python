@@ -5,4 +5,4 @@ sukp_data:
   beta: 0.75
   instance: 1
 agent_param:
-  penalty: 0.1
+  penalty: 1

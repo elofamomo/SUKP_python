@@ -36,6 +36,14 @@ class SetUnionHandler:
         """
         if item_idx in self.selected_items:
             return False
+        
+        additional_weight = 0.0
+        for elem in self.item_subsets[item_idx]:
+            if self.element_counts[elem] == 0:
+                additional_weight += self.element_weights[elem]
+        if self.total_weight + additional_weight > self.capacity:
+            return False
+        
         self.selected_items.add(item_idx)
         self.total_profit += self.item_profits[item_idx]
         for elem in self.item_subsets[item_idx]:
@@ -43,6 +51,7 @@ class SetUnionHandler:
             self.element_counts[elem] += 1
             if prev_count == 0:
                 self.total_weight += self.element_weights[elem]
+        
         return True
 
     def add_items(self, item_idxs):
@@ -84,8 +93,6 @@ class SetUnionHandler:
         
         :return: float, the value (profit if feasible, else 0)
         """
-        if self.total_weight > self.capacity:
-            return float('-inf')
         return self.total_profit
 
     def get_totals(self):
@@ -134,14 +141,15 @@ class SetUnionHandler:
 
         terminate = False
         reward = 0.0
+        current_profit = self.get_profit()
         
         if action == self.m:
-            reward = self.get_profit()
+            reward = 0.0
             terminate = True
         else:
             added = self.add_item(action)
             if added:
-                reward = 0.0
+                reward = self.get_profit() - current_profit
             else:
                 reward = -self.penalty
         
