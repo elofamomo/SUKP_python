@@ -1,5 +1,6 @@
 import numpy as np
 import torch.nn as nn
+import torch
 
 class DeepQlearningNetwork(nn.Module):
     def __init__(self, input_size, output_size):

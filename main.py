@@ -11,7 +11,7 @@ def main():
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk)
     
-    episodes = 100
+    episodes = 500
     batch_size = 64
     best_result = 0
     best_sol = np.array([])
