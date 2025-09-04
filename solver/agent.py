@@ -17,7 +17,7 @@ class DQNAgent:
         self.gamma = 0.99
         self.epsilon = 1.0
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.9999
+        self.epsilon_decay = 0.99995
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
         self.env = env
@@ -47,6 +47,7 @@ class DQNAgent:
             return
         indies = self.rng.choice(len(self.memory), size=batch_size, replace=False)
         minibatch = [self.memory[i] for i in indies]
+        total_loss = 0.0
         for state, action, reward, next_state, terminate in minibatch:
             state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
             next_state_tensor = torch.tensor(next_state, dtype=torch.float32, device=self.device)
@@ -60,6 +61,9 @@ class DQNAgent:
             loss = nn.MSELoss()(self.model(state_tensor), target_f)
             loss.backward()
             self.optimizer.step()
+            total_loss += loss
+        average_loss = total_loss / batch_size
+        print(f"Average loss: {average_loss:.4f}")
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
     
