@@ -10,7 +10,7 @@ import torch.optim as optim
 
 
 class DQNAgent:
-    def __init__(self, env: SetUnionHandler, device):
+    def __init__(self, env: SetUnionHandler, device, load_checkpoint, file_name):
         self.state_size = env.m
         self.action_size = env.m + 1   #an action represent for terminate
         self.memory = deque(maxlen=10000)
@@ -22,9 +22,16 @@ class DQNAgent:
         self.rng = np.random.default_rng(42)
         self.env = env
         self.device = device
+        self.load_checkpoint = load_checkpoint
         self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
         self.target_model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        if self.load_checkpoint:
+            checkpoint = torch.load(f'checkpoints/{file_name}.pth')
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.model.to
         self.update_target_model()
 
     def update_target_model(self):
@@ -63,7 +70,6 @@ class DQNAgent:
             self.optimizer.step()
             total_loss += loss
         average_loss = total_loss / batch_size
-        print(f"Average loss: {average_loss:.4f}")
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
     

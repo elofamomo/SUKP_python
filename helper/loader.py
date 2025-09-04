@@ -151,5 +151,18 @@ class SUKPLoader:
         param = config.get('agent_param', {})
         return param
     
+    def load_general_config(self):
+        with open(self.yaml_path, 'r') as f:
+            config = yaml.safe_load(f)
+        load_checkpoint = config.get('load_checkpoint', bool)
+        save_checkpoint = config.get('save_checkpoint', bool)
+        episode = config.get('episode', int)
+        batch_size = config.get('batch_size', int)
+        return {
+            'load_checkpoint': load_checkpoint,
+            'save_checkpoint': save_checkpoint,
+            'episodes': episode,
+            'batch_size': batch_size
+        }
     def get_filename(self):
         return self.file_name
