@@ -1,16 +1,20 @@
-import numpy as np
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 class DeepQlearningNetwork(nn.Module):
     def __init__(self, input_size, output_size):
         super(DeepQlearningNetwork, self).__init__()
         self.network = nn.Sequential(
-            nn.Linear(input_size, 128),
+            nn.Linear(input_size, 256),  # First hidden layer
+            nn.LayerNorm(256),         # Batch normalization
             nn.ReLU(),
-            nn.Linear(128, 64),
+            nn.Linear(256, 256),         # Second hidden layer
+            nn.LayerNorm(256),         # Batch normalization
             nn.ReLU(),
-            nn.Linear(64, output_size)
+            nn.Linear(256, 128),         # Third hidden layer
+            nn.LayerNorm(128),         # Batch normalization
+            nn.ReLU(),
+            nn.Linear(128, output_size)  # Output layer for Q-values
         )
 
     def forward(self, x):
