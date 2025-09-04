@@ -1,13 +1,16 @@
 from collections import deque
 from networks.dqn import DeepQlearningNetwork
 from helper.set_handler import SetUnionHandler
-import torch.optim as optim
 import numpy as np
 import torch
+if torch.cuda.is_available():
+    torch.set_default_device('cuda')
 import torch.nn as nn
+import torch.optim as optim
+
 
 class DQNAgent:
-    def __init__(self, env: SetUnionHandler):
+    def __init__(self, env: SetUnionHandler, device):
         self.state_size = env.m
         self.action_size = env.m + 1   #an action represent for terminate
         self.memory = deque(maxlen=10000)
@@ -18,8 +21,9 @@ class DQNAgent:
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
         self.env = env
-        self.model = DeepQlearningNetwork(self.state_size, self.action_size)
-        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size)
+        self.device = device
+        self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.update_target_model()
 
@@ -33,7 +37,7 @@ class DQNAgent:
         if self.rng.random() <= self.epsilon:
             return self.rng.integers(self.action_size)
         with torch.no_grad():
-            state_tensor = torch.FloatTensor(state)
+            state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
             action_values = self.model(state_tensor)
             return action_values.argmax().item()
         return None
@@ -44,8 +48,8 @@ class DQNAgent:
         indies = self.rng.choice(len(self.memory), size=batch_size, replace=False)
         minibatch = [self.memory[i] for i in indies]
         for state, action, reward, next_state, terminate in minibatch:
-            state_tensor = torch.FloatTensor(state)
-            next_state_tensor = torch.FloatTensor(next_state)
+            state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
+            next_state_tensor = torch.tensor(next_state, dtype=torch.float32, device=self.device)
             target = reward 
             if not terminate:
                 target += self.gamma * self.target_model(next_state_tensor).max().item()

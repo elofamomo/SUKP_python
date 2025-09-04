@@ -1,15 +1,18 @@
 from helper.loader import SUKPLoader
 from helper.set_handler import SetUnionHandler
 from solver.agent import DQNAgent
-import os
+import torch
 import numpy as np
 def main():
+    if torch.cuda.is_available():
+        torch.set_default_device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     yaml_path = "helper/config.yaml"
     loader = SUKPLoader(yaml_path)
     data = loader.get_data()
     param = loader.get_param()
     suk = SetUnionHandler(data, param)
-    agent = DQNAgent(suk)
+    agent = DQNAgent(suk, device=device)
     
     episodes = 500
     batch_size = 64
