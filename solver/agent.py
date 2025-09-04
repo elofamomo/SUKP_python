@@ -27,7 +27,7 @@ class DQNAgent:
         self.target_model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
-            checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=True)
+            checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
