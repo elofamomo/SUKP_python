@@ -31,7 +31,6 @@ class DQNAgent:
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            self.model.to
         self.update_target_model()
 
     def update_target_model(self):
