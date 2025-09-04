@@ -17,7 +17,7 @@ class DQNAgent:
         self.gamma = 0.99
         self.epsilon = 1.0
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.99995
+        self.epsilon_decay = 0.99997
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
         self.env = env
@@ -27,7 +27,7 @@ class DQNAgent:
         self.target_model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
-            checkpoint = torch.load(f'checkpoints/{file_name}.pth')
+            checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=True)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.target_model.load_state_dict(checkpoint['target_model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -50,7 +50,7 @@ class DQNAgent:
     
     def replay(self, batch_size):
         if len(self.memory) < batch_size:
-            return
+            return 0.0
         indies = self.rng.choice(len(self.memory), size=batch_size, replace=False)
         minibatch = [self.memory[i] for i in indies]
         total_loss = 0.0
@@ -71,6 +71,7 @@ class DQNAgent:
         average_loss = total_loss / batch_size
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+        return average_loss
     
     
         

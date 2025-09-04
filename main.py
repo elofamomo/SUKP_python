@@ -33,7 +33,10 @@ def main():
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
             total_reward = 0.0
+            loss = 0.0
+            count = 0
             while not terminate:
+                count += 1
                 action = agent.action(state)
                 next_state, reward, terminate = suk.step(action)  # Adjust to your env's signature
                 if np.isnan(reward):
@@ -44,8 +47,9 @@ def main():
                 if total_reward > best_result:
                     best_result = suk.get_profit()
                     best_sol = suk.get_state()
-                agent.replay(batch_size)
-            print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Epsilon: {agent.epsilon}")
+                loss += agent.replay(batch_size)
+            loss = loss / count
+            print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, Epsilon: {agent.epsilon}")
     except KeyboardInterrupt:
         print("")
         print(f"Best result: {best_result}")
