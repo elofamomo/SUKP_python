@@ -12,7 +12,7 @@ import torch.optim as optim
 class DQNAgent:
     def __init__(self, env: SetUnionHandler, device, load_checkpoint, file_name):
         self.state_size = env.m
-        self.action_size = env.m + 1   #an action represent for terminate
+        self.action_size = 2 * env.m + 1   #an action represent for terminate
         self.memory = deque(maxlen=10000)
         self.gamma = 0.99
         self.epsilon = 1.0

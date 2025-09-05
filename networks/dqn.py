@@ -4,18 +4,34 @@ import torch.nn as nn
 class DeepQlearningNetwork(nn.Module):
     def __init__(self, input_size, output_size):
         super(DeepQlearningNetwork, self).__init__()
-        self.network = nn.Sequential(
-            nn.Linear(input_size, 256),  # First hidden layer
-            nn.LayerNorm(256),         # Batch normalization
+        # Shared feature extractor
+        self.feature = nn.Sequential(
+            nn.Linear(input_size, 256),
             nn.ReLU(),
-            nn.Linear(256, 256),         # Second hidden layer
-            nn.LayerNorm(256),         # Batch normalization
+            nn.Dropout(0.2),
+            nn.Linear(256, 256),
             nn.ReLU(),
-            nn.Linear(256, 128),         # Third hidden layer
-            nn.LayerNorm(128),         # Batch normalization
+            nn.Dropout(0.2),
+            nn.Linear(256, 256),
             nn.ReLU(),
-            nn.Linear(128, output_size)  # Output layer for Q-values
+            nn.Dropout(0.2)
+        )
+        # Value stream: V(s)
+        self.value = nn.Sequential(
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1)  # Single state value
+        )
+        # Advantage stream: A(s,a)
+        self.advantage = nn.Sequential(
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_size)  # Advantages for 2*m+1 actions
         )
 
     def forward(self, x):
-        return self.network(x)
+        x = self.feature(x)
+        value = self.value(x)
+        advantage = self.advantage(x)
+        # Q(s,a) = V(s) + (A(s,a) - mean(A(s,a)))
+        return value + (advantage - advantage.mean(dim=-1, keepdim=True))
