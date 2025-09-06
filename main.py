@@ -9,6 +9,7 @@ def main():
     if torch.cuda.is_available():
         torch.set_default_device('cuda')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"using: {device}")
     yaml_path = "helper/config.yaml"
     loader = SUKPLoader(yaml_path)
     data = loader.get_data()
