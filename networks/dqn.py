@@ -11,7 +11,6 @@ class DeepQlearningNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(512, 256),            # Third hidden layer
             nn.ReLU(),
-            nn.Dropout(0.2),
             nn.Linear(256, output_size)     # Output: 2*m+1 (e.g., 201 for m=100)
         )
 

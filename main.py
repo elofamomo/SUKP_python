@@ -48,7 +48,8 @@ def main():
                 if suk.get_profit() > best_result:
                     best_result = suk.get_profit()
                     best_sol = suk.get_state()
-                loss += agent.replay(batch_size)
+                decay_rate = e / episodes
+                loss += agent.replay(batch_size, decay_rate)
             loss = loss / count
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, Epsilon: {agent.epsilon}")
     except KeyboardInterrupt:

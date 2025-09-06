@@ -16,8 +16,9 @@ class DQNAgent:
         self.memory = deque(maxlen=10000)
         self.gamma = 0.99
         self.epsilon = 1.0
+        self.epsilon_max = self.epsilon
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.99997
+        self.epsilon_decay = 0.9
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
         self.env = env
@@ -48,10 +49,11 @@ class DQNAgent:
             return action_values.argmax().item()
         return None
     
-    def replay(self, batch_size):
+    def replay(self, batch_size, decay_rate):
         if len(self.memory) < batch_size:
             return 0.0
-        indies = self.rng.choice(len(self.memory), size=batch_size, replace=False)
+        current_batch_size = batch_size
+        indies = self.rng.choice(len(self.memory), size=current_batch_size, replace=False)
         minibatch = [self.memory[i] for i in indies]
         total_loss = 0.0
         for state, action, reward, next_state, terminate in minibatch:
@@ -70,8 +72,14 @@ class DQNAgent:
             total_loss += loss
         average_loss = total_loss / batch_size
         if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+            self.epsilon = 1 - (self.epsilon_decay * decay_rate)
         return average_loss
+    
+    def calcualte_batch_size(self, epsilon, batch_size):
+        res = 0 
+        rate = (epsilon - self.epsilon_min) / (self.epsilon_max - self.epsilon_min)
+        res = rate * (batch_size - 32) + 32
+        return round(res)
     
     
         
