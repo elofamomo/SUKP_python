@@ -136,29 +136,26 @@ class SetUnionHandler:
         return np.array([1.0 if i in self.selected_items else 0.0 for i in range(self.m)], dtype=float)
     
     def step(self, action):
-        if action < 0 or action > 2 * self.m:
+        if action < 0 or action >= 2 * self.m:
             raise ValueError(f"Action must be between 0 and {2 * self.m}. Current action is {action}")
 
         terminate = False
         reward = 0.0
         current_profit = self.get_profit()
         
-        if action == 2 * self.m:
-            reward = 0.0
-            terminate = True
-        else:
-            if 0 <= action and action < self.m:
-                added = self.add_item(action)
-                if added:
-                    reward = self.get_profit() - current_profit
-                else:
-                    reward = -self.penalty
-            elif action > self.m and action <= 2 * self.m:
-                removed = self.remove_item(action - self.m)
-                if removed:
-                    reward = self.get_profit() - current_profit
-                else:
-                    reward = -self.penalty
+        
+        if 0 <= action and action < self.m:
+            added = self.add_item(action)
+            if added:
+                reward = self.get_profit() - current_profit
+            else:
+                reward = -self.penalty
+        elif action > self.m and action <= 2 * self.m:
+            removed = self.remove_item(action - self.m)
+            if removed:
+                reward = self.get_profit() - current_profit
+            else:
+                reward = -self.penalty
         
         new_state = self.get_state()
         return new_state, reward, terminate
