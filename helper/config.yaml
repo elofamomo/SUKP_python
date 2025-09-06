@@ -9,4 +9,4 @@ agent_param:
 load_checkpoint: False
 save_checkpoint: True
 episode: 500
-batch_size: 64
+batch_size: 128

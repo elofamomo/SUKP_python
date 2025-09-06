@@ -1,6 +1,6 @@
 from helper.loader import SUKPLoader
 from helper.set_handler import SetUnionHandler
-from solver.agent import DQNAgent
+from solver.softmax_agent import DQNAgent
 import torch
 import numpy as np
 
@@ -52,7 +52,7 @@ def main():
                 loss += agent.replay(batch_size, decay_rate)
             loss = loss / count
             print(count)
-            print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, Epsilon: {agent.epsilon}")
+            print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, terminate prob: {agent.terminate_probality}")
     except KeyboardInterrupt:
         print("")
         print(f"Best result: {best_result}")
