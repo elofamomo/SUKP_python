@@ -44,7 +44,7 @@ def main():
                 agent.remember(state, action, reward, next_state, terminate)
                 state = next_state
                 total_reward += reward
-                if total_reward > best_result:
+                if suk.get_profit() > best_result:
                     best_result = suk.get_profit()
                     best_sol = suk.get_state()
                 loss += agent.replay(batch_size)
