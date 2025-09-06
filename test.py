@@ -30,13 +30,17 @@ def greedy_init1(handler: SetUnionHandler):
 
     return handler.get_profit(), handler.get_weight()
 
+def implement_greedy(func, handler):
+    return func(handler)
+
+
 def main():
     yaml_path = "helper/config.yaml"
     loader = SUKPLoader(yaml_path)
     data = loader.get_data()
     param = loader.get_param()
     suk = SetUnionHandler(data, param)
-    profit, weight = greedy_init1(suk)
+    profit, weight = implement_greedy(greedy_init1, suk)
     print(profit)
     print(weight)
    

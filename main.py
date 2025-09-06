@@ -1,6 +1,7 @@
 from helper.loader import SUKPLoader
 from helper.set_handler import SetUnionHandler
 from solver.softmax_agent import DQNAgent
+from helper.generate_initial import greedy_init1
 import torch
 import numpy as np
 
@@ -30,7 +31,7 @@ def main():
     try:
         for e in range(episodes):
             print(f"Start episode {e + 1}")
-            suk.reset()
+            suk.reset_init(greedy_init1)
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
             total_reward = 0.0

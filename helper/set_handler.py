@@ -130,6 +130,9 @@ class SetUnionHandler:
         self.element_counts.fill(0)
         self.total_profit = 0.0
         self.total_weight = 0.0
+    
+    def reset_init(self, greedy_function):
+        greedy_function(self)
 
 
     def get_state(self):

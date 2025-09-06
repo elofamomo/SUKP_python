@@ -14,7 +14,6 @@ def greedy_init1(handler: SetUnionHandler):
     combined = sorted(zip(dense, items),reverse=True)
     after_sort_dense, after_sort_index = zip(*combined)
     after_sort_index = list(after_sort_index)
-    print(len(after_sort_index))
     i = 0
     terminate = True
     while terminate and i < handler.m:
