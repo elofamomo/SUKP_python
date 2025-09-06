@@ -51,6 +51,7 @@ def main():
                 decay_rate = e / episodes
                 loss += agent.replay(batch_size, decay_rate)
             loss = loss / count
+            print(count)
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, Epsilon: {agent.epsilon}")
     except KeyboardInterrupt:
         print("")
