@@ -25,6 +25,8 @@ class SetUnionHandler:
         self.element_counts = np.zeros(self.n, dtype=int)
         self.total_profit = 0.0
         self.total_weight = 0.0
+        print("Terminate reward 0.0")
+        self.terminate_reward = 0.0
 
     def add_item(self, item_idx):
         """
@@ -131,9 +133,20 @@ class SetUnionHandler:
         self.total_profit = 0.0
         self.total_weight = 0.0
     
-    def reset_init(self, greedy_function):
-        greedy_function(self)
+    def reset_init(self, solution_list):
+        if not solution_list:
+            raise ValueError("Solution list is empty")
+        idx = np.random.randint(0, len(solution_list))
+        selected_solution = solution_list[idx]
+        self.reset()
+        selected_items = np.where(selected_solution > 0.5)[0].tolist()
+        self.add_items(selected_items)
+    
+    def get_profit_max(self):
+        return max(self.item_profits)
 
+    def get_profit_average(self):
+        return max(self.item_profits) / len(self.item_profits)
 
     def get_state(self):
         return np.array([1.0 if i in self.selected_items else 0.0 for i in range(self.m)], dtype=float)
@@ -147,7 +160,7 @@ class SetUnionHandler:
         current_profit = self.get_profit()
         
         if action == 2 * self.m:
-            reward = 0.0
+            reward = self.terminate_reward
             terminate = True
         else:
             if 0 <= action and action < self.m:

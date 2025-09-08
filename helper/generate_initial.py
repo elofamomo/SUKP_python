@@ -100,3 +100,5 @@ def ga_gen_init_set(suk: SetUnionHandler):
         )
         solution_list.append(ga_solution)
         solution_profit.append(ga_fitness)
+    print(solution_profit)
+    return solution_list

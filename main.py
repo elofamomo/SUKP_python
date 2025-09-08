@@ -1,7 +1,7 @@
 from helper.loader import SUKPLoader
 from helper.set_handler import SetUnionHandler
 from solver.softmax_agent import DQNAgent
-from helper.generate_initial import greedy_init1
+from helper.generate_initial import ga_gen_init_set
 import torch
 import numpy as np
 
@@ -24,14 +24,14 @@ def main():
     file_name = loader.get_filename()
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk, device, load_checkpoint_, file_name)
-    
-
+    init_set = ga_gen_init_set(suk)
     best_result = 0
     best_sol = np.array([])
     try:
         for e in range(episodes):
             print(f"Start episode {e + 1}")
-            suk.reset()
+            suk.reset_init(init_set)
+            print(f"Init solution: Profit {suk.get_profit()}, Weight {suk.get_weight()}")
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
             total_reward = 0.0
@@ -52,8 +52,7 @@ def main():
                 decay_rate = e / episodes
                 loss += agent.replay(batch_size, decay_rate)
             loss = loss / count
-            print(count)
-            print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, terminate prob: {agent.terminate_probality}")
+            print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, terminate prob: {agent.terminate_probality}, total step: {count}")
     except KeyboardInterrupt:
         print("")
         print(f"Best result: {best_result}")
