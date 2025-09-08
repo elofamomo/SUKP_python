@@ -9,7 +9,7 @@ def main():
     data = loader.get_data()
     param = loader.get_param()
     suk = SetUnionHandler(data, param)
-    result_dir = 'saved_result'
+    result_dir = 'after_local_search'
     file_name = loader.get_filename()
     npy_path = os.path.join(result_dir, f'{file_name}.npy')
     
