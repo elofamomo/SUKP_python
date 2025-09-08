@@ -48,8 +48,8 @@ def ga_solver(handler, epochs = 100, pop_size = 50, init_solution = None, pc= 0.
 
     model.solve(problem)
     
-    best_solution = np.round(model.solution[0])  # Ensure binary (0 or 1)
-    best_profit = model.solution[1]
+    best_solution = model.g_best.solution  # Ensure binary (0 or 1)
+    best_fitness = model.g_best.target.fitness
     
     # Verify solution feasibility
     handler.reset()
@@ -59,7 +59,7 @@ def ga_solver(handler, epochs = 100, pop_size = 50, init_solution = None, pc= 0.
         print("Warning: GA solution is infeasible.")
         best_profit = 0.0
     
-    return best_solution, best_profit
+    return best_solution, best_fitness
 
 
 def greedy_init1(handler: SetUnionHandler):
@@ -96,7 +96,22 @@ def main():
     profit, weight = implement_greedy(greedy_init1, suk)
     print(profit)
     print(weight)
-   
+    solution_list = []
+    solution_profit = []
+    for i in range(100):
+        suk.reset()
+        ga_solution, ga_fitness = ga_solver(
+        suk,
+        epochs=100,
+        pop_size=50,
+        init_solution=greedy_init1,
+        pc=0.9,  # Crossover probability
+        pm=0.1   # Mutation probability
+        )
+        solution_list.append(ga_solution)
+        solution_profit.append(ga_fitness)
+
+    print(solution_profit)
 
 
 
