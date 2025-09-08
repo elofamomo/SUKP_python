@@ -31,7 +31,7 @@ def main():
     try:
         for e in range(episodes):
             print(f"Start episode {e + 1}")
-            suk.reset_init(greedy_init1)
+            suk.reset()
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
             total_reward = 0.0

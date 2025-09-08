@@ -1,0 +1,12 @@
+sukp_data:
+  m: 85
+  n: 100
+  alpha: 0.10
+  beta: 0.75
+  instance: 1
+agent_param:
+  penalty: 1
+load_checkpoint: True
+save_checkpoint: True
+episode: 500
+batch_size: 64
