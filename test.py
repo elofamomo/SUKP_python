@@ -177,6 +177,25 @@ def iterated_local_search(handler: SetUnionHandler, solution_list, max_iter=500,
     return best_solution, best_profit
 
 
+import heapq
+
+class TopKHeap:
+    def __init__(self, k):
+        self.k = k
+        self.heap = []  # Min-heap to store the top K largest values
+    
+    def add(self, value):
+        if len(self.heap) < self.k:
+            heapq.heappush(self.heap, value)
+        elif value > self.heap[0]:  # If new value is larger than the smallest in heap
+            heapq.heappop(self.heap)
+            heapq.heappush(self.heap, value)
+    
+    def get_top_k(self, sorted_descending=True):
+        if sorted_descending:
+            return sorted(self.heap, reverse=True)  # Largest first
+        return sorted(self.heap)  # Smallest first
+
 def main():
     yaml_path = "helper/config.yaml"
     loader = SUKPLoader(yaml_path)
@@ -246,5 +265,16 @@ def main():
 
     print(f"After ILS: Max Profit: {max_profit}, Average Profit: {avg_profit}")
 
+    
+# Usage example
+    top100 = TopKHeap(5)
+
+    # Add some values (e.g., from a stream)
+    for num in [5, 3, 8, 1, 9, 2, 7, 4, 6, 10]:  # Pretend this is a large list
+        top100.add(num)
+
+    # After adding many, get the top 100 largest
+    print(top100.get_top_k())  # Output: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1] for this small example (but limited to 100)
 if __name__ == "__main__":
     main()
+    

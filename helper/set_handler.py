@@ -143,6 +143,11 @@ class SetUnionHandler:
         selected_items = np.where(selected_solution > 0.5)[0].tolist()
         self.add_items(selected_items)
     
+    def set_state(self, solution):
+        self.reset()
+        selected_items = np.where(solution > 0.5)[0].tolist()
+        self.add_items(selected_items)
+    
     def get_profit_max(self):
         return max(self.item_profits)
 
@@ -152,7 +157,7 @@ class SetUnionHandler:
     def get_state(self):
         return np.array([1.0 if i in self.selected_items else 0.0 for i in range(self.m)], dtype=float)
     
-    def step(self, action, best_sol, best_result):
+    def step(self, action):
         if action < 0 or action > 2 * self.m:
             raise ValueError(f"Action must be between 0 and {2 * self.m}. Current action is {action}")
 
@@ -161,12 +166,7 @@ class SetUnionHandler:
         current_profit = self.get_profit()
         
         if action == 2 * self.m:		    	 	  
-            best_tabu_sol, best_tabu_profit = self.iterated_local_search([best_sol])
-            current_tabu_sol, current_tabu_profit = self.iterated_local_search([self.get_state()])
-            reward = self.terminate_reward + current_tabu_profit - self.get_profit()
-            if best_tabu_profit > best_result:
-                best_result = best_tabu_profit
-                best_sol = best_tabu_sol
+            reward = self.terminate_reward
             terminate = True
         else:
             if 0 <= action and action < self.m:
@@ -197,80 +197,85 @@ class SetUnionHandler:
         """
         if not solution_list:
             raise ValueError("Solution list is empty")
-        
+        overall_best_solution = np.array([])
+        overall_best_profit = 0
         # Initialize from a random GA solution
-        self.reset_init(solution_list)
-        best_solution = self.get_state().copy()
-        best_profit = self.get_profit()
-        current_profit = best_profit
+        for  solution in solution_list:
+            self.set_state(solution)
+            best_solution = self.get_state().copy()
+            best_profit = self.get_profit()
+            current_profit = best_profit
+            
+            tabu_list = []  # List of tabu items (recently added/removed)
+            
+            for iter in range(max_iter):
+                improved = False
+                
+                # Phase 1: Intensification (greedy neighborhood search)
+                unselected = list(set(range(self.m)) - self.selected_items)
+                selected = list(self.selected_items)
+                
+                # Try adding best non-tabu item by density
+                if unselected:
+                    densities = []
+                    for item in unselected:
+                        if item in tabu_list:
+                            continue
+                        add_weight = sum(self.element_weights[elem] for elem in self.item_subsets[item] if self.element_counts[elem] == 0)
+                        if add_weight > 0 and self.total_weight + add_weight <= self.capacity:
+                            density = self.item_profits[item] / add_weight
+                            densities.append((item, density))
+                    if densities:
+                        best_add = max(densities, key=lambda x: x[1])[0]
+                        self.add_item(best_add)
+                        new_profit = self.get_profit()
+                        if new_profit > current_profit:
+                            current_profit = new_profit
+                            improved = True
+                            tabu_list.append(best_add)
+                            if len(tabu_list) > tabu_size:
+                                tabu_list.pop(0)
+                        else:
+                            self.remove_item(best_add)
+                
+                # Try removing worst non-tabu item (lowest profit contribution)
+                if selected:
+                    contributions = []
+                    for item in selected:
+                        if item in tabu_list:
+                            continue
+                        contributions.append((item, self.item_profits[item]))
+                    if contributions:
+                        worst_remove = min(contributions, key=lambda x: x[1])[0]
+                        self.remove_item(worst_remove)
+                        new_profit = self.get_profit()
+                        if new_profit > current_profit:  # Rare, but possible if removal enables better adds later
+                            current_profit = new_profit
+                            improved = True
+                            tabu_list.append(worst_remove)
+                            if len(tabu_list) > tabu_size:
+                                tabu_list.pop(0)
+                        else:
+                            self.add_item(worst_remove)
+                
+                # Update best if improved
+                if current_profit > best_profit:
+                    best_profit = current_profit
+                    best_solution = self.get_state().copy()
+                
+                # Phase 2: Diversification (perturb if no improvement)
+                if not improved and iter % 10 == 0:  # Perturb every 10 iterations if stuck
+                    for _ in range(perturbation_strength):
+                        if random.random() < 0.5 and selected:  # Remove random
+                            item = random.choice(selected)
+                            self.remove_item(item)
+                        elif unselected:  # Add random if feasible
+                            item = random.choice(unselected)
+                            self.add_item(item)
+                    current_profit = self.get_profit()
+                if best_profit > overall_best_profit:
+                    overall_best_profit = best_profit
+                    overall_best_solution = best_solution
         
-        tabu_list = []  # List of tabu items (recently added/removed)
-        
-        for iter in range(max_iter):
-            improved = False
-            
-            # Phase 1: Intensification (greedy neighborhood search)
-            unselected = list(set(range(self.m)) - self.selected_items)
-            selected = list(self.selected_items)
-            
-            # Try adding best non-tabu item by density
-            if unselected:
-                densities = []
-                for item in unselected:
-                    if item in tabu_list:
-                        continue
-                    add_weight = sum(self.element_weights[elem] for elem in self.item_subsets[item] if self.element_counts[elem] == 0)
-                    if add_weight > 0 and self.total_weight + add_weight <= self.capacity:
-                        density = self.item_profits[item] / add_weight
-                        densities.append((item, density))
-                if densities:
-                    best_add = max(densities, key=lambda x: x[1])[0]
-                    self.add_item(best_add)
-                    new_profit = self.get_profit()
-                    if new_profit > current_profit:
-                        current_profit = new_profit
-                        improved = True
-                        tabu_list.append(best_add)
-                        if len(tabu_list) > tabu_size:
-                            tabu_list.pop(0)
-                    else:
-                        self.remove_item(best_add)
-            
-            # Try removing worst non-tabu item (lowest profit contribution)
-            if selected:
-                contributions = []
-                for item in selected:
-                    if item in tabu_list:
-                        continue
-                    contributions.append((item, self.item_profits[item]))
-                if contributions:
-                    worst_remove = min(contributions, key=lambda x: x[1])[0]
-                    self.remove_item(worst_remove)
-                    new_profit = self.get_profit()
-                    if new_profit > current_profit:  # Rare, but possible if removal enables better adds later
-                        current_profit = new_profit
-                        improved = True
-                        tabu_list.append(worst_remove)
-                        if len(tabu_list) > tabu_size:
-                            tabu_list.pop(0)
-                    else:
-                        self.add_item(worst_remove)
-            
-            # Update best if improved
-            if current_profit > best_profit:
-                best_profit = current_profit
-                best_solution = self.get_state().copy()
-            
-            # Phase 2: Diversification (perturb if no improvement)
-            if not improved and iter % 10 == 0:  # Perturb every 10 iterations if stuck
-                for _ in range(perturbation_strength):
-                    if random.random() < 0.5 and selected:  # Remove random
-                        item = random.choice(selected)
-                        self.remove_item(item)
-                    elif unselected:  # Add random if feasible
-                        item = random.choice(unselected)
-                        self.add_item(item)
-                current_profit = self.get_profit()
-        
-        return best_solution, best_profit
+        return overall_best_solution, overall_best_profit
         

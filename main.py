@@ -1,8 +1,10 @@
 from helper.loader import SUKPLoader
 from helper.set_handler import SetUnionHandler
+from helper.k_heapq import TopKHeap
 from solver.softmax_agent import DQNAgent
 import torch
 import numpy as np
+
 
 
 def main():
@@ -23,6 +25,7 @@ def main():
     file_name = loader.get_filename()
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk, device, load_checkpoint_, file_name)
+    heap = TopKHeap(100)
     best_result = 0
     best_sol = np.array([])
     try:
@@ -38,10 +41,11 @@ def main():
             while not terminate:
                 count += 1
                 action = agent.action(state)
-                next_state, reward, terminate = suk.step(action, best_sol, best_result)  # Adjust to your env's signature
+                next_state, reward, terminate = suk.step(action)  # Adjust to your env's signature
                 if np.isnan(reward):
                     raise ValueError(f"nan reward {reward}")
                 agent.remember(state, action, reward, next_state, terminate)
+                heap.add(suk.get_profit(), suk.get_state())
                 state = next_state
                 total_reward += reward
                 if suk.get_profit() > best_result:
@@ -59,11 +63,14 @@ def main():
             save_checkpoint(best_result, file_name, best_sol, agent)
         return
     finally:
-        print(f"Best result: {best_result}")
+        k_results = heap.get_top_k_states()
+        best_sol, best_result = suk.iterated_local_search(k_results)
+        print(f"After ILS: Max Profit: {best_result}, Best sol: {best_sol}")
         print(f"Save result on result/{file_name}.npy")
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
             save_checkpoint(best_result, file_name, best_sol, agent)
+    
 
 def save_checkpoint(best_result, file_name, best_sol, agent):
     checkpoint = {
