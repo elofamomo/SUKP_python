@@ -166,6 +166,7 @@ class SetUnionHandler:
             if best_tabu_profit > best_result:
                 best_result = best_tabu_profit
                 best_sol = best_tabu_sol
+                reward += best_sol
             terminate = True
         else:
             if 0 <= action and action < self.m:
