@@ -152,7 +152,7 @@ class SetUnionHandler:
     def get_state(self):
         return np.array([1.0 if i in self.selected_items else 0.0 for i in range(self.m)], dtype=float)
     
-    def step(self, action, best_sol):
+    def step(self, action, best_sol, best_result):
         if action < 0 or action > 2 * self.m:
             raise ValueError(f"Action must be between 0 and {2 * self.m}. Current action is {action}")
 
@@ -160,9 +160,12 @@ class SetUnionHandler:
         reward = 0.0
         current_profit = self.get_profit()
         
-        if action == 2 * self.m:
-            print("run into terminate")
-            reward = self.terminate_reward + self.iterated_local_search([best_sol])
+        if action == 2 * self.m:		    	 	  
+            best_tabu_sol, best_tabu_profit = self.iterated_local_search([best_sol])
+            reward = self.terminate_reward
+            if best_tabu_profit > best_result:
+            	best_result = best_tabu_profit
+            	best_sol = best_tabu_sol
             terminate = True
         else:
             if 0 <= action and action < self.m:

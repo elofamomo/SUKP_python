@@ -38,7 +38,7 @@ def main():
             while not terminate:
                 count += 1
                 action = agent.action(state)
-                next_state, reward, terminate = suk.step(action, best_sol)  # Adjust to your env's signature
+                next_state, reward, terminate = suk.step(action, best_sol, best_result)  # Adjust to your env's signature
                 if np.isnan(reward):
                     raise ValueError(f"nan reward {reward}")
                 agent.remember(state, action, reward, next_state, terminate)
