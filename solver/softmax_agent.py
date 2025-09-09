@@ -46,7 +46,7 @@ class DQNAgent:
         action = torch.multinomial(softmax_torch, num_samples=1).item()
         return action
     
-    def replay(self, batch_size, decay_rate):
+    def replay(self, batch_size):
         if len(self.memory) < batch_size:
             return 0.0
         current_batch_size = batch_size
