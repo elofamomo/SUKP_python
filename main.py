@@ -29,7 +29,7 @@ def main():
         for e in range(episodes):
             print(f"Start episode {e + 1}")
             suk.reset()
-            print(f"Init solution: Profit {suk.get_profit()}, Weight {suk.get_weight()}")
+            # print(f"Init solution: Profit {suk.get_profit()}, Weight {suk.get_weight()}")
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
             total_reward = 0.0

@@ -162,7 +162,7 @@ class SetUnionHandler:
         
         if action == 2 * self.m:		    	 	  
             best_tabu_sol, best_tabu_profit = self.iterated_local_search([best_sol])
-            current_tabu_sol, current_tabu_profit = self.iterated_local_search([self.get_state])
+            current_tabu_sol, current_tabu_profit = self.iterated_local_search([self.get_state()])
             reward = self.terminate_reward + current_tabu_profit - self.get_profit()
             if best_tabu_profit > best_result:
                 best_result = best_tabu_profit
