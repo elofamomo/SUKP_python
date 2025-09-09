@@ -164,8 +164,8 @@ class SetUnionHandler:
             best_tabu_sol, best_tabu_profit = self.iterated_local_search([best_sol])
             reward = self.terminate_reward
             if best_tabu_profit > best_result:
-            	best_result = best_tabu_profit
-            	best_sol = best_tabu_sol
+                best_result = best_tabu_profit
+                best_sol = best_tabu_sol
             terminate = True
         else:
             if 0 <= action and action < self.m:
