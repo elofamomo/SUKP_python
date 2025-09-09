@@ -202,7 +202,7 @@ def main():
     data = loader.get_data()
     param = loader.get_param()
     suk = SetUnionHandler(data, param)
-    result_dir = 'saved_result'
+    result_dir = 'result'
     file_name = loader.get_filename()
     npy_path = os.path.join(result_dir, f'{file_name}.npy')
     
@@ -249,7 +249,7 @@ def main():
     solution_list = [best_sol]
     local_search_solution_list = []
 
-    for _ in range(100):  # Run 10 times for diversity
+    for _ in range(500):  # Run 10 times for diversity
         best_sol, best_prof = iterated_local_search(suk, solution_list)
         local_search_solution_list.append((best_sol, best_prof))
 

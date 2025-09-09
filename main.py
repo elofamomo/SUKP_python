@@ -64,7 +64,11 @@ def main():
         return
     finally:
         k_results = heap.get_top_k_states()
-        best_sol, best_result = suk.iterated_local_search(k_results)
+        for _ in range(200):
+            tem_best_sol, tem_best_result = suk.iterated_local_search(k_results)
+            if tem_best_result > best_result:
+                best_result = tem_best_result
+                best_sol = tem_best_sol
         print(f"After ILS: Max Profit: {best_result}, Best sol: {best_sol}")
         print(f"Save result on result/{file_name}.npy")
         np.save(f"result/{file_name}.npy", best_sol)
