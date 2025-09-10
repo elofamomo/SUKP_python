@@ -1,5 +1,7 @@
 import numpy as np
 import random
+from mealpy import BinaryVar, Problem
+from mealpy.evolutionary_based.GA import OriginalGA
 
 class SetUnionHandler:
     def __init__(self, data, param):
@@ -279,3 +281,5 @@ class SetUnionHandler:
         
         return overall_best_solution, overall_best_profit
         
+
+

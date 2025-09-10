@@ -18,6 +18,7 @@ class SUKPProblem(Problem):
         kwargs['log_to'] = None
         super().__init__(bounds=bounds, minmax="max", *args, **kwargs)
         self.handler = handler
+        
     
     def obj_func(self, solution):
         """
@@ -31,10 +32,10 @@ class SUKPProblem(Problem):
 def ga_solver(handler, epochs = 100, pop_size = 50, init_solution = None, pc= 0.9, pm=0.1):
     problem = SUKPProblem(handler)
 
-    init_pop = None
-    if init_solution is not None:
-        init_pop = [init_solution] + [np.random.randint(0, 2, size=handler.m).astype(float) for _ in range(pop_size - 1)]
-
+    # init_pop = None
+    # if init_solution is not None:
+    #     init_pop = [init_solution] + [np.random.randint(0, 2, size=handler.m).astype(float) for _ in range(pop_size - 1)]
+    
     # Configure GA parameters
     model = OriginalGA(
         epoch=epochs,
@@ -46,19 +47,13 @@ def ga_solver(handler, epochs = 100, pop_size = 50, init_solution = None, pc= 0.
         crossover="uniform",  # Uniform crossover for binary problems
         mutation="flip"  # Bit-flip mutation for binary variables
     )
-
-    model.solve(problem)
+    if init_solution is None:
+        model.solve(problem)
+    else:
+        model.solve(problem,starting_solutions=init_solution)
     
     best_solution = model.g_best.solution  # Ensure binary (0 or 1)
     best_fitness = model.g_best.target.fitness
-    
-    # Verify solution feasibility
-    handler.reset()
-    selected = np.where(best_solution > 0.5)[0].tolist()
-    handler.add_items(selected)
-    if not handler.is_feasible():
-        print("Warning: GA solution is infeasible.")
-        best_profit = 0.0
     
     return best_solution, best_fitness
 
@@ -176,25 +171,101 @@ def iterated_local_search(handler: SetUnionHandler, solution_list, max_iter=500,
     
     return best_solution, best_profit
 
-
-import heapq
-
-class TopKHeap:
-    def __init__(self, k):
-        self.k = k
-        self.heap = []  # Min-heap to store the top K largest values
+def tabu_search(handler, solution_list, max_iter=500, tabu_size=10):
+    """
+    Performs Tabu Search starting from a random top GA solution.
+    :param handler: SetUnionHandler instance
+    :param solution_list: list[np.array], top binary solutions from GA
+    :param max_iter: int, maximum iterations
+    :param tabu_size: int, size of tabu list (forbidden moves)
+    :return: np.array, best solution; float, best profit
+    """
+    if not solution_list:
+        raise ValueError("Solution list is empty")
     
-    def add(self, value):
-        if len(self.heap) < self.k:
-            heapq.heappush(self.heap, value)
-        elif value > self.heap[0]:  # If new value is larger than the smallest in heap
-            heapq.heappop(self.heap)
-            heapq.heappush(self.heap, value)
+    # Initialize from a random GA solution
+    handler.reset_init(solution_list)
+    best_solution = handler.get_state().copy()
+    best_profit = handler.get_profit()
+    current_profit = best_profit
     
-    def get_top_k(self, sorted_descending=True):
-        if sorted_descending:
-            return sorted(self.heap, reverse=True)  # Largest first
-        return sorted(self.heap)  # Smallest first
+    tabu_list = []  # List of (item, action) tuples
+    max_tabu_size = tabu_size
+    
+    for _ in range(max_iter):
+        best_neighbor = None
+        best_neighbor_profit = -float('inf')
+        best_move = None
+        
+        # Generate neighborhood: add/remove one item
+        unselected = list(set(range(handler.m)) - handler.selected_items)
+        selected = list(handler.selected_items)
+        
+        # Try adding items
+        for item in unselected:
+            if (item, 'add') in tabu_list:
+                continue
+            handler.add_item(item)
+            profit = handler.get_profit()
+            if profit > best_neighbor_profit:
+                best_neighbor_profit = profit
+                best_neighbor = handler.get_state().copy()
+                best_move = (item, 'add')
+            handler.remove_item(item)  # Undo
+            
+        # Try removing items
+        for item in selected:
+            if (item, 'remove') in tabu_list:
+                continue
+            handler.remove_item(item)
+            profit = handler.get_profit()
+            if profit > best_neighbor_profit:
+                best_neighbor_profit = profit
+                best_neighbor = handler.get_state().copy()
+                best_move = (item, 'remove')
+            handler.add_item(item)  # Undo
+        
+        # Apply best non-tabu move
+        if best_neighbor is not None:
+            handler.reset()
+            handler.add_items(np.where(best_neighbor > 0.5)[0].tolist())
+            current_profit = best_neighbor_profit
+            tabu_list.append(best_move)
+            if len(tabu_list) > max_tabu_size:
+                tabu_list.pop(0)
+            
+            # Update best if improved
+            if current_profit > best_profit:
+                best_profit = current_profit
+                best_solution = best_neighbor.copy()
+        
+        # Aspiration: Override tabu if significantly better than best_profit
+        for item in unselected:
+            if (item, 'add') in tabu_list and current_profit < best_profit * 1.1:  # Allow 10% better
+                handler.add_item(item)
+                profit = handler.get_profit()
+                if profit > best_profit:
+                    best_profit = profit
+                    best_solution = handler.get_state().copy()
+                    tabu_list.append((item, 'add'))
+                    if len(tabu_list) > max_tabu_size:
+                        tabu_list.pop(0)
+                handler.remove_item(item)
+        
+        for item in selected:
+            if (item, 'remove') in tabu_list and current_profit < best_profit * 1.1:
+                handler.remove_item(item)
+                profit = handler.get_profit()
+                if profit > best_profit:
+                    best_profit = profit
+                    best_solution = handler.get_state().copy()
+                    tabu_list.append((item, 'remove'))
+                    if len(tabu_list) > max_tabu_size:
+                        tabu_list.pop(0)
+                handler.add_item(item)
+    
+    return best_solution, best_profit
+
 
 def main():
     yaml_path = "helper/config.yaml"
@@ -232,25 +303,39 @@ def main():
 
     solution_list = []
     solution_profit = []
-    # for _ in range(100):
-    #     suk.reset()
-    #     ga_solution, ga_fitness = ga_solver(
-    #     suk,
-    #     epochs=100,
-    #     pop_size=1000,
-    #     init_solution=greedy_init1,
-    #     pc=0.9,  # Crossover probability
-    #     pm=0.1   # Mutation probability
-    #     )
-    #     solution_list.append(ga_solution)
-    #     solution_profit.append(ga_fitness)
-    # print(solution_profit)
-    # print(sum(solution_profit) / len(solution_profit))
-    solution_list = [best_sol]
+    for _ in range(100):
+        suk.reset()
+        ga_solution, ga_fitness = ga_solver(
+        suk,
+        epochs=100,
+        pop_size=1000,
+        pc=0.9,  # Crossover probability
+        pm=0.1   # Mutation probability
+        )
+        solution_list.append(ga_solution)
+        solution_profit.append(ga_fitness)
+    print(solution_profit)
+    print(sum(solution_profit) / len(solution_profit))
+    print(max(solution_profit))
+    solution_list1, solution_profit1 = [], []
+    for _ in range(1):
+        ga_solution, ga_fitness = ga_solver(
+        suk,
+        epochs=200,
+        pop_size=100,
+        init_solution= solution_list,
+        pc=0.9,  # Crossover probability
+        pm=0.1   # Mutation probability
+        )
+        solution_list1.append(ga_solution)
+        solution_profit1.append(ga_fitness)
+    print(solution_profit1)
+    print(sum(solution_profit1) / len(solution_profit1))
+    print(max(solution_profit1))
     local_search_solution_list = []
 
-    for _ in range(500):  # Run 10 times for diversity
-        best_sol, best_prof = iterated_local_search(suk, solution_list)
+    for _ in range(10):  # Run 10 times for diversity
+        best_sol, best_prof = suk.iterated_local_search(solution_list1)
         local_search_solution_list.append((best_sol, best_prof))
 
     profits = [prof for _, prof in local_search_solution_list]
@@ -266,15 +351,6 @@ def main():
     print(f"After ILS: Max Profit: {max_profit}, Average Profit: {avg_profit}")
 
     
-# Usage example
-    top100 = TopKHeap(5)
-
-    # Add some values (e.g., from a stream)
-    for num in [5, 3, 8, 1, 9, 2, 7, 4, 6, 10]:  # Pretend this is a large list
-        top100.add(num)
-
-    # After adding many, get the top 100 largest
-    print(top100.get_top_k())  # Output: [10, 9, 8, 7, 6, 5, 4, 3, 2, 1] for this small example (but limited to 100)
 if __name__ == "__main__":
     main()
     
