@@ -64,7 +64,9 @@ def main():
         return
     finally:
         k_results = heap.get_top_k_states()
-        for _ in range(200):
+        for i in range(200):
+            if i % 10 == 0:
+                print("ILS phase {i}: Max Profit: {best_result}, Best sol: {best_sol}")
             tem_best_sol, tem_best_result = suk.iterated_local_search(k_results)
             if tem_best_result > best_result:
                 best_result = tem_best_result

@@ -7,6 +7,7 @@ if torch.cuda.is_available():
     torch.set_default_device('cuda')
 import torch.nn as nn
 import torch.optim as optim
+import torch.distributions as dist
 
 
 class DQNAgent:
@@ -41,9 +42,10 @@ class DQNAgent:
     def action(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
-        softmax_torch = torch.softmax(action_values, dim=0)
-        self.terminate_probality = softmax_torch[self.action_size - 1].item()
-        action = torch.multinomial(softmax_torch, num_samples=1).item()
+        log_probs = torch.log_softmax(action_values, dim=0)
+        self.terminate_probality = log_probs[self.action_size - 1].item()
+        action_dist = dist.Categorical(logits=log_probs)
+        action = action_dist.sample().item()
         return action
     
     def replay(self, batch_size):
