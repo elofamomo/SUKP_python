@@ -5,13 +5,19 @@ class TopKHeap:
         self.k = k
         self.heap = []  # Min-heap to store the top K largest values
         self.counter = itertools.count()
+        self.val_set = set()
     def add(self, value, sol):
         count = next(self.counter)
+        if value in self.val_set:
+            return
         if len(self.heap) < self.k:
             heapq.heappush(self.heap, (value, count, sol))
         elif value > self.heap[0][0]:  # If new value is larger than the smallest in heap
+            self.val_set.remove(self.heap[0][0])
             heapq.heappop(self.heap)
             heapq.heappush(self.heap, (value, count, sol))
+        self.val_set.add(value)
+
     
     def get_top_k(self, sorted_descending=True):
         items = [(v, s) for v, c, s in self.heap]  # Copy to avoid modifying heap
