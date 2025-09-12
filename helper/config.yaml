@@ -1,6 +1,6 @@
 sukp_data:
-  m: 85
-  n: 100
+  m: 200
+  n: 185
   alpha: 0.10
   beta: 0.75
   instance: 1

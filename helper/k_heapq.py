@@ -23,3 +23,6 @@ class TopKHeap:
         sorted_items = sorted(self.heap, key=lambda x: x[0], reverse=sorted_by_value_descending)
         return [s for v, c, s in sorted_items]  # Return only states, in the sorted order
 
+    def get_top_k_values(self, sorted_descending=True):
+        sorted_items = sorted(self.heap, key=lambda x: x[0], reverse=sorted_descending)
+        return [v for v, c, s in sorted_items]  # Return only values, in the sorted order

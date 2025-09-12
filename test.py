@@ -7,6 +7,7 @@ from mealpy.evolutionary_based.GA import OriginalGA
 from mealpy.swarm_based.ABC import OriginalABC
 import random
 import os
+from helper.k_heapq import TopKHeap
 
 class SUKPProblem(Problem):
     """
@@ -317,36 +318,26 @@ def main():
     print(solution_profit)
     print(sum(solution_profit) / len(solution_profit))
     print(max(solution_profit))
-    solution_list1, solution_profit1 = [], []
-    for _ in range(1):
-        ga_solution, ga_fitness = ga_solver(
-        suk,
-        epochs=200,
-        pop_size=100,
-        init_solution= solution_list,
-        pc=0.9,  # Crossover probability
-        pm=0.1   # Mutation probability
-        )
-        solution_list1.append(ga_solution)
-        solution_profit1.append(ga_fitness)
-    print(solution_profit1)
-    print(sum(solution_profit1) / len(solution_profit1))
-    print(max(solution_profit1))
-    local_search_solution_list = []
+    heap = TopKHeap(100)
 
-    for _ in range(10):  # Run 10 times for diversity
-        best_sol, best_prof = suk.iterated_local_search(solution_list1)
-        local_search_solution_list.append((best_sol, best_prof))
+    for i in range(10):
+        current_solution_list = solution_list.copy()  # Run 10 times for diversity
+        current_profit_list = solution_profit.copy()
+        for _ in range(20): 
+            current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
+        print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
+        best_sol = current_best_sol
+        solution_list = current_solution_list
+        solution_profit = current_profit_list
+        
 
-    profits = [prof for _, prof in local_search_solution_list]
-    max_profit = max(profits)
-    if max_profit > total_profit:
-        best_sol =  local_search_solution_list[profits.index(max_profit)][0]
-        result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
-        print(f"Result: {result_str}")
-        print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
-        np.save(f"result/{file_name}.npy", best_sol)
-    avg_profit = np.mean(profits)
+    max_profit = max(solution_profit)
+    best_sol = solution_list[max_profit.index(max_profit)]
+    result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
+    print(f"Result: {result_str}")
+    print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
+    np.save(f"result/{file_name}.npy", best_sol)
+    avg_profit = np.mean(solution_profit)
 
     print(f"After ILS: Max Profit: {max_profit}, Average Profit: {avg_profit}")
 

@@ -63,14 +63,24 @@ def main():
             save_checkpoint(best_result, file_name, best_sol, agent)
         return
     finally:
-        k_results = heap.get_top_k_states()
-        for i in range(200):
-            if i % 10 == 0:
-                print(f"ILS phase {i}: Max Profit: {best_result}, Best sol: {best_sol}")
-            tem_best_sol, tem_best_result = suk.iterated_local_search(k_results)
-            if tem_best_result > best_result:
-                best_result = tem_best_result
-                best_sol = tem_best_sol
+        solution_list = heap.get_top_k_states()
+        solution_profit = heap.get_top_k_values()
+        print(solution_list)
+        for i in range(10):
+            current_solution_list = solution_list.copy()  # Run 10 times for diversity
+            current_profit_list = solution_profit.copy()
+            for _ in range(20): 
+                current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
+            print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
+            best_sol = current_best_sol
+            solution_list = current_solution_list
+            solution_profit = current_profit_list
+        max_profit = max(solution_profit)
+        best_sol = solution_list[max_profit.index(max_profit)]
+        result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
+        print(f"Result: {result_str}")
+        suk.set_state(best_sol)
+        print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
         print(f"After ILS: Max Profit: {best_result}, Best sol: {best_sol}")
         print(f"Save result on result/{file_name}.npy")
         np.save(f"result/{file_name}.npy", best_sol)

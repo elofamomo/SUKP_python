@@ -187,7 +187,7 @@ class SetUnionHandler:
         new_state = self.get_state()
         return new_state, reward, terminate
     
-    def iterated_local_search(self, solution_list, max_iter=500, tabu_size=20, perturbation_strength=3):
+    def iterated_local_search(self, solution_list, current_solution_list, current_profit_list, max_iter=500, tabu_size=20, perturbation_strength=3):
         """
         Performs Iterated Local Search starting from a random top GA solution.
         :param handler: SetUnionHandler instance
@@ -199,10 +199,10 @@ class SetUnionHandler:
         """
         if not solution_list:
             raise ValueError("Solution list is empty")
-        overall_best_solution = np.array([])
-        overall_best_profit = 0
+
         # Initialize from a random GA solution
-        for  solution in solution_list:
+        for i in range(len(solution_list)):
+            solution = solution_list[i]
             self.set_state(solution)
             best_solution = self.get_state().copy()
             best_profit = self.get_profit()
@@ -275,11 +275,18 @@ class SetUnionHandler:
                             item = random.choice(unselected)
                             self.add_item(item)
                     current_profit = self.get_profit()
-                if best_profit > overall_best_profit:
-                    overall_best_profit = best_profit
-                    overall_best_solution = best_solution
-        
+                if best_profit > current_profit_list[i]:
+                    current_profit_list[i] = best_profit
+                    current_solution_list[i] = best_solution
+        overall_best_profit = max(current_profit_list)
+        overall_best_solution = current_solution_list[current_profit_list.index(overall_best_profit)]
         return overall_best_solution, overall_best_profit
+    """ 
+    Time complexity : O(S * max_iter * m * n)
+    S: Size of slution list
+    max_iter: max iter
+    m: self.m - number of items
+    n: self.n - numer of elements
+    """
         
-
 
