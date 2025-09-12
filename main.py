@@ -76,7 +76,7 @@ def main():
             solution_list = current_solution_list
             solution_profit = current_profit_list
         max_profit = max(solution_profit)
-        best_sol = solution_list[max_profit.index(max_profit)]
+        best_sol = solution_list[solution_profit.index(max_profit)]
         result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
         print(f"Result: {result_str}")
         suk.set_state(best_sol)
