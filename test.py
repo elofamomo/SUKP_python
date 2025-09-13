@@ -8,6 +8,7 @@ from mealpy.swarm_based.ABC import OriginalABC
 import random
 import os
 from helper.k_heapq import TopKHeap
+from helper.generate_initial import random_gen
 
 class SUKPProblem(Problem):
     """
@@ -301,26 +302,31 @@ def main():
     # Get and print total profit
     total_profit = suk.get_profit()
     print(f"Total profit: {total_profit}")
-
+    solution_list = random_gen(suk)
     solution_list = []
     solution_profit = []
-    for _ in range(100):
-        suk.reset()
-        ga_solution, ga_fitness = ga_solver(
-        suk,
-        epochs=100,
-        pop_size=1000,
-        pc=0.9,  # Crossover probability
-        pm=0.1   # Mutation probability
-        )
-        solution_list.append(ga_solution)
-        solution_profit.append(ga_fitness)
-    print(solution_profit)
-    print(sum(solution_profit) / len(solution_profit))
-    print(max(solution_profit))
+    # for _ in range(100):
+    #     suk.reset()
+    #     ga_solution, ga_fitness = ga_solver(
+    #     suk,
+    #     epochs=100,
+    #     pop_size=1000,
+    #     pc=0.9,  # Crossover probability
+    #     pm=0.1   # Mutation probability
+    #     )
+    #     solution_list.append(ga_solution)
+    #     solution_profit.append(ga_fitness)
+    # print(solution_profit)
+    # print(sum(solution_profit) / len(solution_profit))
+    # print(max(solution_profit))
     heap = TopKHeap(100)
-
-    for i in range(10):
+    for i in range(100):
+        random_state, random_profit = random_gen(suk)
+        solution_list.append(random_state)
+        solution_profit.append(random_profit)
+    
+    print(solution_profit)
+    for i in range(20):
         current_solution_list = solution_list.copy()  # Run 10 times for diversity
         current_profit_list = solution_profit.copy()
         for _ in range(20): 
@@ -332,7 +338,7 @@ def main():
         
 
     max_profit = max(solution_profit)
-    best_sol = solution_list[max_profit.index(max_profit)]
+    best_sol = solution_list[solution_profit.index(max_profit)]
     result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
     print(f"Result: {result_str}")
     print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")

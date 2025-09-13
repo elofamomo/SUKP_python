@@ -5,7 +5,7 @@ import numpy as np
 from mealpy import BinaryVar, Problem
 from mealpy.evolutionary_based.GA import OriginalGA
 from mealpy.swarm_based.ABC import OriginalABC
-
+import random
 
 class SUKPProblem(Problem):
     """
@@ -102,3 +102,24 @@ def ga_gen_init_set(suk: SetUnionHandler):
         solution_profit.append(ga_fitness)
     print(solution_profit)
     return solution_list
+
+def random_gen(suk: SetUnionHandler):
+    suk.reset()  # Clear current state
+    target_weight = suk.capacity / 2.0  # Half of capacity
+    unselected = list(range(suk.m))  # All items initially unselected
+    
+    # Randomly shuffle items to avoid bias
+    random.shuffle(unselected)
+    
+    # Add items until weight >= target_weight or no feasible items left
+    while unselected and suk.get_weight() < target_weight:
+        # Pick a random item
+        item_idx = unselected.pop(0)  # Remove to avoid re-selection
+        # Compute marginal weight (new elements only)
+        marginal_weight = sum(suk.element_weights[elem] for elem in suk.item_subsets[item_idx] if suk.element_counts[elem] == 0)
+        # Check if adding is feasible
+        if suk.total_weight + marginal_weight <= suk.capacity:
+            suk.add_item(item_idx)  # Add if feasible
+    
+    # Return binary solution vector
+    return suk.get_state(), suk.get_profit()
