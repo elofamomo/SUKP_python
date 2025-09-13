@@ -23,7 +23,7 @@ class SetUnionHandler:
         self.element_weights = data['element_weights']
         self.item_subsets = data['item_subsets']
         self.penalty = param['penalty']
-        
+        self.init_sol = []
         self.selected_items = set()
         self.element_counts = np.zeros(self.n, dtype=int)
         self.total_profit = 0.0
@@ -136,15 +136,17 @@ class SetUnionHandler:
         self.total_profit = 0.0
         self.total_weight = 0.0
     
-    def reset_init(self, solution_list):
-        if not solution_list:
+    def reset_init(self):
+        if not self.init_sol or len(self.init_sol) == 0:
             raise ValueError("Solution list is empty")
-        idx = np.random.randint(0, len(solution_list))
-        selected_solution = solution_list[idx]
-        self.reset()
-        selected_items = np.where(selected_solution > 0.5)[0].tolist()
-        self.add_items(selected_items)
+        idx = np.random.randint(0, len(self.init_sol))
+        selected_solution = self.init_sol[idx]
+        self.set_state(selected_solution)
     
+    def set_init_sol(self, init_sol):
+        if len(init_sol) > 0:
+            self.init_sol = init_sol
+
     def set_state(self, solution):
         self.reset()
         selected_items = np.where(solution > 0.5)[0].tolist()

@@ -1,6 +1,7 @@
 from helper.loader import SUKPLoader
 from helper.set_handler import SetUnionHandler
 from helper.k_heapq import TopKHeap
+from helper.generate_initial import random_gen
 from solver.softmax_agent import DQNAgent
 import torch
 import numpy as np
@@ -26,12 +27,19 @@ def main():
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk, device, load_checkpoint_, file_name)
     heap = TopKHeap(100)
+    ran_sol_l, ran_prof_l = [], []
+    for _ in range(100):
+        ran_sol, ran_prof = random_gen(suk)
+        ran_sol_l.append(ran_sol)
+        ran_prof_l.append(ran_prof)
+    print(ran_prof_l)
+    suk.set_init_sol(ran_sol_l)
     best_result = 0
     best_sol = np.array([])
     try:
         for e in range(episodes):
             print(f"Start episode {e + 1}")
-            suk.reset()
+            suk.reset_init()
             # print(f"Init solution: Profit {suk.get_profit()}, Weight {suk.get_weight()}")
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
