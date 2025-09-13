@@ -1,5 +1,5 @@
 from collections import deque
-from networks.dqn200 import DeepQlearningNetwork
+from networks.dqn100 import DeepQlearningNetwork
 from helper.set_handler import SetUnionHandler
 import numpy as np
 import torch
@@ -42,6 +42,7 @@ class DQNAgent:
     def action(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
+        self.set_valid_action(action_values)
         log_probs = torch.log_softmax(action_values, dim=0)
         action_dist = dist.Categorical(logits=log_probs)
         action = action_dist.sample().item()
@@ -84,5 +85,11 @@ class DQNAgent:
         return e_x / np.sum(e_x, axis=axis, keepdims=True)
     
     
-        
+    def set_valid_action(self, action_values):
+        for action in range(self.state_size):
+            if action in self.env.selected_items:
+                action_values[action] = float('-inf')
+        for action in range(self.state_size, 2 * self.state_size):
+            if action not in self.env.selected_items:
+                action_values[action] = float('-inf')
 

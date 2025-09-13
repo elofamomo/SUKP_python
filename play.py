@@ -52,12 +52,12 @@ def play(yaml_path="helper/config.yaml", checkpoint_path=None):
             action_values = model(state_tensor)
             log_probs = torch.log_softmax(action_values, dim=0)
             action_values[2 * suk.m] = float('-inf') 
+            set_valid_action(suk, action_values)
             action = torch.argmax(action_values).item()  # Greedy action (argmax for evaluation)
         
         next_state, reward, terminate = suk.step(action)
         total_reward += reward
         state = next_state
-        print(steps)
         steps += 1
 
         current_profit = suk.get_profit()
@@ -77,5 +77,13 @@ def play(yaml_path="helper/config.yaml", checkpoint_path=None):
 
     return best_solution, best_profit, total_weight
 
+def set_valid_action(suk: SetUnionHandler, action_values):
+    for action in range(0, suk.m):
+        if action in suk.selected_items:
+            action_values[action] = float('-inf')
+    for action in range(suk.m, 2 * suk.m):
+        if action not in suk.selected_items:
+            action_values[action] = float('-inf')
+    
 if __name__ == "__main__":
     play()

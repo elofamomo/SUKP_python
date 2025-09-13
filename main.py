@@ -81,7 +81,7 @@ def main():
         print(f"Result: {result_str}")
         suk.set_state(best_sol)
         print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
-        print(f"After ILS: Max Profit: {best_result}, Best sol: {best_sol}")
+        print(f"After ILS: Max Profit: {max_profit}, Best sol: {best_sol}")
         print(f"Save result on result/{file_name}.npy")
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
