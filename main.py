@@ -77,14 +77,14 @@ def main():
             writer.add_scalar('Entropy/Average', np.mean(episode_entropy), e + 1)
             writer.add_scalar('Terminate_Prob/Average', np.mean(episode_terminate_probs), e + 1)
             
-            plotter.log_episode(
-                total_reward=total_reward,
-                best_profit=best_result,
-                loss=loss,
-                weight=suk.get_weight(),
-                entropy=np.mean(episode_entropy),
-                terminate_prob=np.mean(episode_terminate_probs)
-            )
+            # plotter.log_episode(
+            #     total_reward=total_reward,
+            #     best_profit=best_result,
+            #     loss=loss,
+            #     weight=suk.get_weight(),
+            #     entropy=np.mean(episode_entropy),
+            #     terminate_prob=np.mean(episode_terminate_probs)
+            # )
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, total step: {count}")
     except KeyboardInterrupt:
         print("")
@@ -93,8 +93,8 @@ def main():
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
             save_checkpoint(best_result, file_name, best_sol, agent)
-        plotter.plot_all()
-        plotter.save_metrics()
+        # plotter.plot_all()
+        # plotter.save_metrics()
         writer.close()
         return
     finally:
@@ -121,8 +121,8 @@ def main():
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
             save_checkpoint(best_result, file_name, best_sol, agent)
-        plotter.plot_all()
-        plotter.save_metrics()
+        # plotter.plot_all()
+        # plotter.save_metrics()
         writer.close()
 
 def save_checkpoint(best_result, file_name, best_sol, agent):
