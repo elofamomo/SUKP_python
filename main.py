@@ -3,9 +3,10 @@ from helper.set_handler import SetUnionHandler
 from helper.k_heapq import TopKHeap
 from helper.generate_initial import random_gen
 from solver.softmax_agent import DQNAgent
+from metric.plotter import Plotter
+from torch.utils.tensorboard import SummaryWriter
 import torch
 import numpy as np
-
 
 
 def main():
@@ -27,6 +28,9 @@ def main():
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk, device, load_checkpoint_, file_name)
     heap = TopKHeap(100)
+    plotter = Plotter("figures", file_name)
+    writer = SummaryWriter(log_dir=f'runs/logs/{file_name}')
+    plotter.set_capacity(suk.capacity)
     ran_sol_l, ran_prof_l = [], []
     for _ in range(100):
         ran_sol, ran_prof = random_gen(suk)
@@ -46,9 +50,11 @@ def main():
             total_reward = 0.0
             loss = 0.0
             count = 0
+            episode_entropy = []
+            episode_terminate_probs = []
             while not terminate:
                 count += 1
-                action = agent.action(state)
+                action, entropy = agent.action(state)
                 next_state, reward, terminate = suk.step(action)  # Adjust to your env's signature
                 if np.isnan(reward):
                     raise ValueError(f"nan reward {reward}")
@@ -56,11 +62,29 @@ def main():
                 heap.add(suk.get_profit(), suk.get_state())
                 state = next_state
                 total_reward += reward
+                episode_entropy.append(entropy)
+                episode_terminate_probs.append(agent.terminate_probability)
+
                 if suk.get_profit() > best_result:
                     best_result = suk.get_profit()
                     best_sol = suk.get_state()
                 loss += agent.replay(batch_size)
             loss = loss / count
+            writer.add_scalar('Reward/Episode', total_reward, e + 1)
+            writer.add_scalar('Profit/Best', best_result, e + 1)
+            writer.add_scalar('Loss/Average', loss, e + 1)
+            writer.add_scalar('Weight/Final', suk.get_weight(), e + 1)
+            writer.add_scalar('Entropy/Average', np.mean(episode_entropy), e + 1)
+            writer.add_scalar('Terminate_Prob/Average', np.mean(episode_terminate_probs), e + 1)
+            
+            plotter.log_episode(
+                total_reward=total_reward,
+                best_profit=best_result,
+                loss=loss,
+                weight=suk.get_weight(),
+                entropy=np.mean(episode_entropy),
+                terminate_prob=np.mean(episode_terminate_probs)
+            )
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, total step: {count}")
     except KeyboardInterrupt:
         print("")
@@ -69,6 +93,9 @@ def main():
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
             save_checkpoint(best_result, file_name, best_sol, agent)
+        plotter.plot_all()
+        plotter.save_metrics()
+        writer.close()
         return
     finally:
         solution_list = heap.get_top_k_states()
@@ -94,7 +121,9 @@ def main():
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
             save_checkpoint(best_result, file_name, best_sol, agent)
-    
+        plotter.plot_all()
+        plotter.save_metrics()
+        writer.close()
 
 def save_checkpoint(best_result, file_name, best_sol, agent):
     checkpoint = {
