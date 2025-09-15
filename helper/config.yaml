@@ -1,11 +1,11 @@
 sukp_data:
-  m: 85
+  m: 100
   n: 100
   alpha: 0.10
   beta: 0.75
   instance: 1
 agent_param:
-  penalty: 5
+  penalty: 1
 load_checkpoint: False
 save_checkpoint: True
 episode: 500

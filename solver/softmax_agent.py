@@ -42,7 +42,7 @@ class DQNAgent:
     def action(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
-        self.set_valid_action(action_values)
+        #  self.set_valid_action(action_values)
         log_probs = torch.log_softmax(action_values, dim=0)
         softmax_torch = torch.exp(log_probs)
         self.terminate_probability = softmax_torch[self.action_size - 1].item()
