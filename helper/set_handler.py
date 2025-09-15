@@ -173,16 +173,17 @@ class SetUnionHandler:
             reward = self.terminate_reward
             terminate = True
         else:
+            fullness = self.total_weight / self.capacity
             if 0 <= action and action < self.m:
                 added = self.add_item(action)
                 if added:
-                    reward = self.get_profit() - current_profit
+                    reward = (self.get_profit() - current_profit) * fullness
                 else:
                     reward = -self.penalty
             elif action > self.m and action <= 2 * self.m:
                 removed = self.remove_item(action - self.m)
                 if removed:
-                    reward = self.get_profit() - current_profit
+                    reward = (self.get_profit() - current_profit) * (1 - fullness)
                 else:
                     reward = -self.penalty
         
