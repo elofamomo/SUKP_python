@@ -43,7 +43,7 @@ def main():
     try:
         for e in range(episodes):
             print(f"Start episode {e + 1}")
-            suk.reset_init()
+            suk.reset()
             # print(f"Init solution: Profit {suk.get_profit()}, Weight {suk.get_weight()}")
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
@@ -53,7 +53,7 @@ def main():
             num_of_steps = 100 * ((e / 100) + 1) 
             episode_entropy = []
             episode_terminate_probs = []
-            while count < num_of_steps:
+            while count < 500:
                 count += 1
                 action, entropy = agent.action(state)
                 next_state, reward, terminate = suk.step(action)  # Adjust to your env's signature
