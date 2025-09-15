@@ -5,7 +5,7 @@ sukp_data:
   beta: 0.75
   instance: 1
 agent_param:
-  penalty: 1
+  penalty: 0
 load_checkpoint: False
 save_checkpoint: True
 episode: 500
