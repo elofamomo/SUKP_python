@@ -305,25 +305,21 @@ def main():
     solution_list = random_gen(suk)
     solution_list = []
     solution_profit = []
-    # for _ in range(100):
-    #     suk.reset()
-    #     ga_solution, ga_fitness = ga_solver(
-    #     suk,
-    #     epochs=100,
-    #     pop_size=1000,
-    #     pc=0.9,  # Crossover probability
-    #     pm=0.1   # Mutation probability
-    #     )
-    #     solution_list.append(ga_solution)
-    #     solution_profit.append(ga_fitness)
-    # print(solution_profit)
-    # print(sum(solution_profit) / len(solution_profit))
-    # print(max(solution_profit))
+    for _ in range(100):
+        suk.reset()
+        ga_solution, ga_fitness = ga_solver(
+        suk,
+        epochs=100,
+        pop_size=1000,
+        pc=0.9,  # Crossover probability
+        pm=0.1   # Mutation probability
+        )
+        solution_list.append(ga_solution)
+        solution_profit.append(ga_fitness)
+    print(solution_profit)
+    print(sum(solution_profit) / len(solution_profit))
+    print(max(solution_profit))
     heap = TopKHeap(100)
-    for i in range(100):
-        random_state, random_profit = random_gen(suk)
-        solution_list.append(random_state)
-        solution_profit.append(random_profit)
     
     print(solution_profit)
     for i in range(20):

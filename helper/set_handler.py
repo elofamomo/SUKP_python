@@ -173,7 +173,7 @@ class SetUnionHandler:
             reward = self.terminate_reward
             terminate = True
         else:
-            fullness = (self.total_weight - self.capacity) / self.capacity
+            fullness = self.total_weight / self.capacity
             if 0 <= action and action < self.m:
                 added = self.add_item(action)
                 if added:
