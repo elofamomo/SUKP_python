@@ -34,6 +34,7 @@ def main():
     plotter.set_capacity(suk.capacity)
     best_result = 0
     best_sol = np.array([])
+    solution_list, solution_profit = [], []
     for _ in range(100):
         suk.reset()
         ga_solution, ga_fitness = ga_solver(

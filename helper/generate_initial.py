@@ -14,6 +14,7 @@ class SUKPProblem(Problem):
     """
     def __init__(self, handler: SetUnionHandler, *args, **kwargs):
         bounds = BinaryVar(n_vars=handler.m)
+        kwargs['log_to'] = None
         super().__init__(bounds=bounds, minmax="max", *args, **kwargs)
         self.handler = handler
     
