@@ -43,12 +43,16 @@ class DQNAgent:
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
         self.set_valid_action(action_values)
+        action_values[self.action_size - 1] = float('-inf')
         log_probs = torch.log_softmax(action_values / self.env.tau, dim=0)
-        print(log_probs)
         softmax_torch = torch.exp(log_probs)
         self.terminate_probability = softmax_torch[self.action_size - 1].item()
         action_dist = dist.Categorical(logits=log_probs)
         action = action_dist.sample().item()
+        if 0 <= action and action < self.state_size:
+            print(f"Add: {action}")
+        elif self.state_size <= action and action < 2 * self.state_size:
+            print(f"remove: {action - self.state_size}")
         entropy = -torch.sum(softmax_torch * torch.log(softmax_torch + 1e-8)).item()
         return action, entropy
     
