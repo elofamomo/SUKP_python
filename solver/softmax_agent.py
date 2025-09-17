@@ -21,6 +21,8 @@ class DQNAgent:
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
         self.env = env
+        self.tabu_size = self.env.tabu_size
+        self.tabu = {}
         self.device = device
         self.load_checkpoint = load_checkpoint
         self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
@@ -92,10 +94,24 @@ class DQNAgent:
         # Compute softmax values
         return e_x / np.sum(e_x, axis=axis, keepdims=True)
     
+    def update_tabu(self, action):
+        if 0 <= action and action < self.state_size:
+            self.tabu[action + self.state_size] = self.tabu_size
+        elif self.state_size <= action and action < 2 * self.state_size:
+            self.tabu[action - self.state_size] = self.tabu_size
+    
+    def decay_tabu(self):
+        need_remove = []
+        for item in self.tabu:
+            self.tabu[item] -= 1
+            if self.tabu[item] <= 0:
+                need_remove.append(item)
+        for item in need_remove:
+            del self.tabu[item]
     
     def set_valid_action(self, action_values):
         for action in range(self.state_size):
-            if action in self.env.selected_items:
+            if action in self.env.selected_items or action in self.tabu:
                 action_values[action] = float('-inf')
             else:
                 marginal_weight = sum(self.env.element_weights[elem] for elem in self.env.item_subsets[action] if self.env.element_counts[elem] == 0)
@@ -103,6 +119,6 @@ class DQNAgent:
                     action_values[action] = float('-inf')
 
         for action in range(self.state_size, 2 * self.state_size):
-            if action - self.state_size not in self.env.selected_items:
+            if action - self.state_size not in self.env.selected_items or action in self.tabu:
                 action_values[action] = float('-inf')
 

@@ -66,7 +66,10 @@ def main():
             while count < 500:
                 count += 1
                 action, entropy = agent.action(state)
-                next_state, reward, terminate = suk.step(action)  # Adjust to your env's signature
+                next_state, reward, terminate, success = suk.step(action)  # Adjust to your env's signature
+                agent.decay_tabu()
+                if success: 
+                    agent.update_tabu(action)
                 if np.isnan(reward):
                     raise ValueError(f"nan reward {reward}")
                 agent.remember(state, action, reward, next_state, terminate)

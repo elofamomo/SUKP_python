@@ -25,12 +25,12 @@ class SetUnionHandler:
         self.penalty = param['penalty']
         self.sigma = param['sigma']
         self.tau = param['tau']
+        self.tabu_size = param['tabu_size']
         self.init_sol = []
         self.selected_items = set()
         self.element_counts = np.zeros(self.n, dtype=int)
         self.total_profit = 0.0
         self.total_weight = 0.0
-        print("Terminate reward 0.0")
         self.terminate_reward = 0.0
 
     def add_item(self, item_idx):
@@ -171,6 +171,7 @@ class SetUnionHandler:
         terminate = False
         reward = 0.0
         current_profit = self.get_profit()
+        success = False
         
         if action == 2 * self.m:		    	 	  
             reward = self.terminate_reward
@@ -181,18 +182,20 @@ class SetUnionHandler:
                 added = self.add_item(action)
                 if added:
                     reward = (self.get_profit() - current_profit) * np.exp((fullness - 1) / self.sigma)
+                    success = True
                 else:
                     reward = -self.penalty
             elif action >= self.m and action < 2 * self.m:
                 removed = self.remove_item(action - self.m)
                 if removed:
                     fullness = self.total_weight / self.capacity
-                    reward = (self.get_profit() - current_profit) * np.exp(-fullness / self.sigma)
+                    reward = (self.get_profit() - current_profit) * np.exp((fullness - 1) / self.sigma)
+                    success = True
                 else:
                     reward = -self.penalty
         
         new_state = self.get_state()
-        return new_state, reward, terminate
+        return new_state, reward, terminate, success
     
     def iterated_local_search(self, solution_list, current_solution_list, current_profit_list, max_iter=500, tabu_size=20, perturbation_strength=3):
         """
