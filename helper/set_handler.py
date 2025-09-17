@@ -24,6 +24,7 @@ class SetUnionHandler:
         self.item_subsets = data['item_subsets']
         self.penalty = param['penalty']
         self.sigma = param['sigma']
+        self.tau = param['tau']
         self.init_sol = []
         self.selected_items = set()
         self.element_counts = np.zeros(self.n, dtype=int)
