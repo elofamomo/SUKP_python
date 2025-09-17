@@ -1,8 +1,8 @@
 sukp_data:
   m: 100
   n: 85
-  alpha: 0.15
-  beta: 0.85
+  alpha: 0.10
+  beta: 0.75
   instance: 1
 agent_param:
   penalty: 0

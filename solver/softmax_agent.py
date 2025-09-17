@@ -44,11 +44,12 @@ class DQNAgent:
         action_values = self.model(state_tensor)
         self.set_valid_action(action_values)
         log_probs = torch.log_softmax(action_values / self.env.tau, dim=0)
+        print(log_probs)
         softmax_torch = torch.exp(log_probs)
         self.terminate_probability = softmax_torch[self.action_size - 1].item()
         action_dist = dist.Categorical(logits=log_probs)
         action = action_dist.sample().item()
-        entropy = -torch.sum(softmax_torch * log_probs).item()
+        entropy = -torch.sum(softmax_torch * torch.log(softmax_torch + 1e-8)).item()
         return action, entropy
     
     def replay(self, batch_size):
@@ -98,6 +99,6 @@ class DQNAgent:
                     action_values[action] = float('-inf')
 
         for action in range(self.state_size, 2 * self.state_size):
-            if action not in self.env.selected_items:
+            if action - self.state_size not in self.env.selected_items:
                 action_values[action] = float('-inf')
 
