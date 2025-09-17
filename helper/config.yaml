@@ -6,7 +6,8 @@ sukp_data:
   instance: 1
 agent_param:
   penalty: 0
+  sigma: 0.5
 load_checkpoint: False
 save_checkpoint: True
-episode: 500
+episode: 100
 batch_size: 128

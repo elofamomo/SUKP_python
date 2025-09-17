@@ -23,6 +23,7 @@ class SetUnionHandler:
         self.element_weights = data['element_weights']
         self.item_subsets = data['item_subsets']
         self.penalty = param['penalty']
+        self.sigma = param['sigma']
         self.init_sol = []
         self.selected_items = set()
         self.element_counts = np.zeros(self.n, dtype=int)
@@ -136,10 +137,11 @@ class SetUnionHandler:
         self.total_profit = 0.0
         self.total_weight = 0.0
     
-    def reset_init(self):
+    def reset_init(self, idx=None):
         if not self.init_sol or len(self.init_sol) == 0:
             raise ValueError("Solution list is empty")
-        idx = np.random.randint(0, len(self.init_sol))
+        if idx is None:
+            idx = np.random.randint(0, len(self.init_sol))
         selected_solution = self.init_sol[idx]
         self.set_state(selected_solution)
     
@@ -177,14 +179,14 @@ class SetUnionHandler:
             if 0 <= action and action < self.m:
                 added = self.add_item(action)
                 if added:
-                    reward = (self.get_profit() - current_profit) * np.exp(fullness - 1)
+                    reward = (self.get_profit() - current_profit) * np.exp((fullness - 1) / self.sigma)
                 else:
                     reward = -self.penalty
             elif action >= self.m and action < 2 * self.m:
                 removed = self.remove_item(action - self.m)
                 if removed:
                     fullness = self.total_weight / self.capacity
-                    reward = (self.get_profit() - current_profit) * np.exp(-fullness)
+                    reward = (self.get_profit() - current_profit) * np.exp(-fullness / self.sigma)
                 else:
                     reward = -self.penalty
         

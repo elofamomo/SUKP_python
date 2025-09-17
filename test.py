@@ -305,33 +305,35 @@ def main():
     solution_list = random_gen(suk)
     solution_list = []
     solution_profit = []
-    for _ in range(100):
-        suk.reset()
-        ga_solution, ga_fitness = ga_solver(
-        suk,
-        epochs=100,
-        pop_size=1000,
-        pc=0.9,  # Crossover probability
-        pm=0.1   # Mutation probability
-        )
-        solution_list.append(ga_solution)
-        solution_profit.append(ga_fitness)
-    print(solution_profit)
-    print(sum(solution_profit) / len(solution_profit))
-    print(max(solution_profit))
+    # for _ in range(100):
+    #     suk.reset()
+    #     ga_solution, ga_fitness = ga_solver(
+    #     suk,
+    #     epochs=100,
+    #     pop_size=1000,
+    #     pc=0.9,  # Crossover probability
+    #     pm=0.1   # Mutation probability
+    #     )
+    #     solution_list.append(ga_solution)
+    #     solution_profit.append(ga_fitness)
+    # print(solution_profit)
+    # print(sum(solution_profit) / len(solution_profit))
+    # print(max(solution_profit))
     heap = TopKHeap(100)
-    
+    solution_list = [best_sol]
+    solution_profit = [total_profit]
     print(solution_profit)
-    for i in range(20):
+    for i in range(10):
         current_solution_list = solution_list.copy()  # Run 10 times for diversity
         current_profit_list = solution_profit.copy()
-        for _ in range(20): 
+        for _ in range(200): 
             current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
         print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
-        best_sol = current_best_sol
-        solution_list = current_solution_list
-        solution_profit = current_profit_list
-        
+        if max(current_profit_list) > max(solution_profit):
+            best_sol = current_best_sol
+            solution_list = current_solution_list
+            solution_profit = current_profit_list
+            
 
     max_profit = max(solution_profit)
     best_sol = solution_list[solution_profit.index(max_profit)]
