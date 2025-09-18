@@ -65,10 +65,10 @@ class DQNAgent:
             action_dist = dist.Categorical(logits=log_probs)
             action = action_dist.sample().item()
             entropy = -torch.sum(softmax_torch * torch.log(softmax_torch + 1e-8)).item()
-        if 0 <= action and action < self.state_size:
-            print(f"Add: {action}")
-        elif self.state_size <= action and action < 2 * self.state_size:
-            print(f"remove: {action - self.state_size}")
+        # if 0 <= action and action < self.state_size:
+        #     print(f"Add: {action}")
+        # elif self.state_size <= action and action < 2 * self.state_size:
+        #     print(f"remove: {action - self.state_size}")
         return action, entropy
     
     def replay(self, batch_size):
