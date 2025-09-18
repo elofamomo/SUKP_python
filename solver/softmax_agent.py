@@ -108,6 +108,10 @@ class DQNAgent:
         self.decay_tabu()
         self.decay_noise()
 
+    def reset_noise(self):
+        self.noise_std = self.env.noise_std
+        print(self.noise_std)
+
     def decay_noise(self):
         self.noise_std = max(0.01, self.noise_std * self.noise_decay)
 
