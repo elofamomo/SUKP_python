@@ -26,6 +26,8 @@ class SetUnionHandler:
         self.sigma = param['sigma']
         self.tau = param['tau']
         self.tabu_size = param['tabu_size']
+        self.noise_std = param['noise_std']
+        self.noise_decay = param['noise_decay']
         self.init_sol = []
         self.selected_items = set()
         self.element_counts = np.zeros(self.n, dtype=int)

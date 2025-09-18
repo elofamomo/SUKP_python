@@ -67,7 +67,7 @@ def main():
                 count += 1
                 action, entropy = agent.action(state)
                 next_state, reward, terminate, success = suk.step(action)  # Adjust to your env's signature
-                agent.decay_tabu()
+                agent.decay()
                 if success: 
                     agent.update_tabu(action)
                 if np.isnan(reward):

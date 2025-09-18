@@ -23,6 +23,8 @@ class DQNAgent:
         self.env = env
         self.tabu_size = self.env.tabu_size
         self.tabu = {}
+        self.noise_std = self.env.noise_std
+        self.noise_decay = self.env.noise_decay
         self.device = device
         self.load_checkpoint = load_checkpoint
         self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
@@ -46,6 +48,8 @@ class DQNAgent:
         action_values = self.model(state_tensor)
         self.set_valid_action(action_values)
         action_values[self.action_size - 1] = float('-inf')
+        noise = torch.rand_like(action_values) * self.noise_std
+        action_values = action_values + noise
         log_probs = torch.log_softmax(action_values / self.env.tau, dim=0)
         softmax_torch = torch.exp(log_probs)
         self.terminate_probability = softmax_torch[self.action_size - 1].item()
@@ -100,6 +104,13 @@ class DQNAgent:
         elif self.state_size <= action and action < 2 * self.state_size:
             self.tabu[action - self.state_size] = self.tabu_size
     
+    def decay(self):
+        self.decay_tabu()
+        self.decay_noise()
+
+    def decay_noise(self):
+        self.noise_std = max(0.01, self.noise_std * self.noise_decay)
+
     def decay_tabu(self):
         need_remove = []
         for item in self.tabu:
