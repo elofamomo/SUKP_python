@@ -60,9 +60,7 @@ def main():
             total_reward = 0.0
             loss = 0.0
             count = 0
-            num_of_steps = 100 * ((e / 100) + 1) 
             episode_entropy = []
-            episode_terminate_probs = []
             while count < 500:
                 count += 1
                 action, entropy = agent.action(state)

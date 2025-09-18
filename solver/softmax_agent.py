@@ -121,7 +121,7 @@ class DQNAgent:
         self.__decay_epsilon()
     
     def __decay_epsilon(self):
-        self.epsilon = max(0.05, self.epsilon * self.epsilon_decay)
+        self.epsilon = max(0, self.epsilon - self.epsilon_decay)
 
     def reset_noise(self):
         self.noise_std = self.env.noise_std
