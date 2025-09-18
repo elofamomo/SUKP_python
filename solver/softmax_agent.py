@@ -16,7 +16,6 @@ class DQNAgent:
         self.action_size = 2 * env.m + 1   #an action represent for terminate
         self.memory = deque(maxlen=10000)
         self.gamma = 0.99
-        self.epsilon = 1.0
         self.terminate_probality = 0.0
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
@@ -25,6 +24,8 @@ class DQNAgent:
         self.tabu = {}
         self.noise_std = self.env.noise_std
         self.noise_decay = self.env.noise_decay
+        self.epsilon = self.env.epsilon
+        self.epsilon_decay = self.env.epsilon_decay
         self.device = device
         self.load_checkpoint = load_checkpoint
         self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
@@ -48,18 +49,26 @@ class DQNAgent:
         action_values = self.model(state_tensor)
         self.set_valid_action(action_values)
         action_values[self.action_size - 1] = float('-inf')
-        noise = torch.rand_like(action_values) * self.noise_std
-        action_values = action_values + noise
-        log_probs = torch.log_softmax(action_values / self.env.tau, dim=0)
-        softmax_torch = torch.exp(log_probs)
-        self.terminate_probability = softmax_torch[self.action_size - 1].item()
-        action_dist = dist.Categorical(logits=log_probs)
-        action = action_dist.sample().item()
+        if np.random.rand() < self.epsilon:
+            valid_actions = [i for i in range(self.action_size - 1) if action_values[i] != float('-inf')]
+            if valid_actions:
+                action = self.rng.choice(valid_actions)
+            else:
+                action = self.action_size - 1 # action reward 0
+            entropy = np.log(len(valid_actions))
+        else:
+            noise = torch.rand_like(action_values) * self.noise_std
+            action_values = action_values + noise
+            log_probs = torch.log_softmax(action_values / self.env.tau, dim=0)
+            softmax_torch = torch.exp(log_probs)
+            self.terminate_probability = softmax_torch[self.action_size - 1].item()
+            action_dist = dist.Categorical(logits=log_probs)
+            action = action_dist.sample().item()
+            entropy = -torch.sum(softmax_torch * torch.log(softmax_torch + 1e-8)).item()
         if 0 <= action and action < self.state_size:
             print(f"Add: {action}")
         elif self.state_size <= action and action < 2 * self.state_size:
             print(f"remove: {action - self.state_size}")
-        entropy = -torch.sum(softmax_torch * torch.log(softmax_torch + 1e-8)).item()
         return action, entropy
     
     def replay(self, batch_size):
@@ -104,18 +113,24 @@ class DQNAgent:
         elif self.state_size <= action and action < 2 * self.state_size:
             self.tabu[action - self.state_size] = self.tabu_size
     
-    def decay(self):
-        self.decay_tabu()
-        self.decay_noise()
+    def decay_step(self):
+        self.__decay_tabu()
+        self.__decay_noise()
+
+    def decay_episode(self):
+        self.__decay_epsilon()
+    
+    def __decay_epsilon(self):
+        self.epsilon = max(0.05, self.epsilon * self.epsilon_decay)
 
     def reset_noise(self):
         self.noise_std = self.env.noise_std
         print(self.noise_std)
 
-    def decay_noise(self):
+    def __decay_noise(self):
         self.noise_std = max(0.01, self.noise_std * self.noise_decay)
 
-    def decay_tabu(self):
+    def __decay_tabu(self):
         need_remove = []
         for item in self.tabu:
             self.tabu[item] -= 1

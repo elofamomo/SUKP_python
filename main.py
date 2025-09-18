@@ -67,7 +67,7 @@ def main():
                 count += 1
                 action, entropy = agent.action(state)
                 next_state, reward, terminate, success = suk.step(action)  # Adjust to your env's signature
-                agent.decay()
+                agent.decay_step()
                 if success: 
                     agent.update_tabu(action)
                 if np.isnan(reward):
@@ -77,19 +77,19 @@ def main():
                 state = next_state
                 total_reward += reward
                 episode_entropy.append(entropy)
-                episode_terminate_probs.append(agent.terminate_probability)
 
                 if suk.get_profit() > best_result:
                     best_result = suk.get_profit()
                     best_sol = suk.get_state()
                 loss += agent.replay(batch_size)
             loss = loss / count
+            agent.reset_noise()
+            agent.decay_episode()
             writer.add_scalar('Reward/Episode', total_reward, e + 1)
             writer.add_scalar('Profit/Best', best_result, e + 1)
             writer.add_scalar('Loss/Average', loss, e + 1)
             writer.add_scalar('Weight/Final', suk.get_weight(), e + 1)
             writer.add_scalar('Entropy/Average', np.mean(episode_entropy), e + 1)
-            writer.add_scalar('Terminate_Prob/Average', np.mean(episode_terminate_probs), e + 1)
             
             # plotter.log_episode(
             #     total_reward=total_reward,
