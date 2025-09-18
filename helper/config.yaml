@@ -8,7 +8,7 @@ agent_param:
   penalty: 0
   sigma: 0.5
   tau: 5.0
-  tabu_size: 10
+  tabu_size: 30
 load_checkpoint: False
 save_checkpoint: True
 episode: 100
