@@ -26,7 +26,7 @@ class DeepQlearningNetwork(nn.Module):
         return self.network(x)
     
 class TransformerQNetwork(nn.Module):
-    def __init__(self, input_size, output_size, d_model=128, nhead=8, num_layers=4):
+    def __init__(self, input_size, output_size, profits, subset_size, d_model=128, nhead=8, num_layers=4):
         """
         Transformer-based Q-Network for SUKP DQN.
         
@@ -40,7 +40,8 @@ class TransformerQNetwork(nn.Module):
         self.input_size = input_size  # m
         self.d_model = d_model
         self.feature_dim = 3  # selected, profit_norm, subset_size_norm
-        
+        self.profits = profits
+        self.subset_size = subset_size
         # Embed item features to d_model
         self.item_embed = nn.Linear(self.feature_dim, d_model)
         
@@ -67,7 +68,7 @@ class TransformerQNetwork(nn.Module):
         nn.init.xavier_uniform_(self.item_embed.weight)
         nn.init.xavier_uniform_(self.pool_proj.weight)
 
-    def forward(self, state, profits, subset_sizes):
+    def forward(self, state):
         """
         Forward pass for SUKP state.
         
@@ -76,17 +77,18 @@ class TransformerQNetwork(nn.Module):
         :param subset_sizes: torch.Tensor, (m,), subset sizes (normalized)
         :return: torch.Tensor, (batch, output_size), Q-values
         """
+        profits = self.profits
+        subset_sizes = self.subset_size
         if state.dim() == 1:
             state = state.unsqueeze(0)
             profits = profits.unsqueeze(0)
             subset_sizes = subset_sizes.unsqueeze(0)
         batch_size = state.shape[0]
-        
         # Item features: (batch, m, feature_dim)
         features = torch.stack([
             state.float(),  # Selected (0/1)
-            profits.unsqueeze(0).expand(batch_size, -1),  # Normalized profit
-            subset_sizes.unsqueeze(0).expand(batch_size, -1)  # Normalized subset size (proxy for overlap potential)
+            profits.expand(batch_size, -1),  # Normalized profit
+            subset_sizes.expand(batch_size, -1)  # Normalized subset size (proxy for overlap potential)
         ], dim=-1)
         
         # Embed: (batch, m, d_model)

@@ -47,9 +47,6 @@ def main():
         solution_profit.append(ga_fitness)
     avg_hamming = np.mean([[hamming_distance(sol1, sol2) / len(sol1) for sol2 in solution_list] for sol1 in solution_list])
 
-    print(solution_profit)
-    print(sum(solution_profit) / len(solution_profit))
-    print(max(solution_profit))
     suk.set_init_sol(solution_list)
     print(f"Average normalized Hamming: {avg_hamming:.3f}")
 
@@ -102,6 +99,8 @@ def main():
             #     terminate_prob=np.mean(episode_terminate_probs)
             # )
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, total step: {count}")
+    except Exception as e:
+        print(print(f"{type(e).__name__}: {e}"))
     except KeyboardInterrupt:
         print("")
         print(f"Best result: {best_result}")
