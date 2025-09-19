@@ -1,8 +1,7 @@
 from helper.loader import SUKPLoader
 from helper.set_handler import SetUnionHandler
 from helper.k_heapq import TopKHeap
-from helper.generate_initial import random_gen
-from helper.generate_initial import ga_solver
+from helper.generate_initial import ga_solver, hamming_distance
 from solver.softmax_agent import DQNAgent
 from metric.plotter import Plotter
 from torch.utils.tensorboard import SummaryWriter
@@ -40,16 +39,21 @@ def main():
         ga_solution, ga_fitness = ga_solver(
         suk,
         epochs=100,
-        pop_size=1000,
-        pc=0.6,  # Crossover probability
+        pop_size=50,
+        pc=0.9,  # Crossover probability
         pm=0.4   # Mutation probability
         )
         solution_list.append(ga_solution)
         solution_profit.append(ga_fitness)
+    avg_hamming = np.mean([[hamming_distance(sol1, sol2) / len(sol1) for sol2 in solution_list] for sol1 in solution_list])
+
     print(solution_profit)
     print(sum(solution_profit) / len(solution_profit))
     print(max(solution_profit))
     suk.set_init_sol(solution_list)
+    print(f"Average normalized Hamming: {avg_hamming:.3f}")
+
+
     try:
         for e in range(episodes):
             print(f"Start episode {e + 1}")
@@ -61,7 +65,7 @@ def main():
             loss = 0.0
             count = 0
             episode_entropy = []
-            while count < 500:
+            while count < 250:
                 count += 1
                 action, entropy = agent.action(state)
                 next_state, reward, terminate, success = suk.step(action)  # Adjust to your env's signature

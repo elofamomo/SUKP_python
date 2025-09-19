@@ -10,10 +10,10 @@ agent_param:
   tau: 5.0
   tabu_size: 30
   noise_std: 0.2
-  noise_decay: 0.99
+  noise_decay: 0.98
   epsilon: 1.0
-  epsilon_decay: 0.0125
+  epsilon_decay: 0.00625
 load_checkpoint: False
 save_checkpoint: True
-episode: 100
+episode: 200
 batch_size: 128

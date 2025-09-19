@@ -124,3 +124,6 @@ def random_gen(suk: SetUnionHandler):
     
     # Return binary solution vector
     return suk.get_state(), suk.get_profit()
+
+def hamming_distance(sol1, sol2):
+    return np.sum(sol1 != sol2)
