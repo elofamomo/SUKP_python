@@ -41,8 +41,8 @@ def main():
         suk,
         epochs=100,
         pop_size=1000,
-        pc=0.9,  # Crossover probability
-        pm=0.1   # Mutation probability
+        pc=0.6,  # Crossover probability
+        pm=0.4   # Mutation probability
         )
         solution_list.append(ga_solution)
         solution_profit.append(ga_fitness)

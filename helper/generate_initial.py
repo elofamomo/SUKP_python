@@ -41,7 +41,7 @@ def ga_solver(handler, epochs = 100, pop_size = 50, init_solution = None, pc= 0.
         pc=pc,  # Crossover probability
         pm=pm,  # Mutation probability
         selection="tournament",  # Tournament selection for better convergence
-        k_tournament=4,  # Size of tournament
+        k_tournament=10,  # Size of tournament
         crossover="uniform",  # Uniform crossover for binary problems
         mutation="flip"  # Bit-flip mutation for binary variables
     )
