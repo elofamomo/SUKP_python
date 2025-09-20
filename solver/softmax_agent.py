@@ -89,7 +89,7 @@ class DQNAgent:
                 target += self.gamma * self.target_model(next_state_tensor).max().item()
             target_f = self.model(state_tensor)
             target_f = target_f.clone()
-            target_f[action] = target
+            target_f[0][action] = target
             self.optimizer.zero_grad()
             loss = nn.MSELoss()(self.model(state_tensor), target_f)
             loss.backward()
