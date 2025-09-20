@@ -126,8 +126,8 @@ def main():
     finally:
         solution_list = heap.get_top_k_states()
         solution_profit = heap.get_top_k_values()
-        solution_list.extend(episode_prof)
-        solution_profit.extend(episode_sol)
+        solution_list.extend(episode_sol)
+        solution_profit.extend(episode_prof)
         print(solution_profit)
         for i in range(20):
             current_solution_list = solution_list.copy()  # Run 10 times for diversity
