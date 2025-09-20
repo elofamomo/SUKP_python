@@ -53,7 +53,8 @@ def main():
     suk.set_init_sol(solution_list)
     print(f"Average normalized Hamming: {avg_hamming:.3f}")
 
-
+    episode_sol = []
+    episode_prof = []
     try:
         for e in range(episodes):
             print(f"Start episode {e + 1}")
@@ -65,6 +66,9 @@ def main():
             loss = 0.0
             count = 0
             episode_entropy = []
+            current_best_prof = suk.get_profit()
+            current_best_sol = suk.get_state()
+
             while count < 250:
                 count += 1
                 action, entropy = agent.action(state)
@@ -79,11 +83,15 @@ def main():
                 state = next_state
                 total_reward += reward
                 episode_entropy.append(entropy)
-
+                if suk.get_profit() > current_best_prof:
+                    current_best_prof = suk.get_profit()
+                    current_best_sol = suk.get_state()
                 if suk.get_profit() > best_result:
                     best_result = suk.get_profit()
                     best_sol = suk.get_state()
                 loss += agent.replay(batch_size)
+            episode_sol.append(current_best_sol)
+            episode_prof.append(current_best_prof)
             loss = loss / count
             agent.reset_noise()
             agent.decay_episode()
@@ -116,6 +124,8 @@ def main():
     finally:
         solution_list = heap.get_top_k_states()
         solution_profit = heap.get_top_k_values()
+        solution_list.extend(episode_prof)
+        solution_profit.extend(episode_sol)
         print(solution_profit)
         for i in range(20):
             current_solution_list = solution_list.copy()  # Run 10 times for diversity
