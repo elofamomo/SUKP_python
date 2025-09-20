@@ -12,7 +12,7 @@ agent_param:
   noise_std: 0.2
   noise_decay: 0.98
   epsilon: 1.0
-  epsilon_decay: 0.00625
+  epsilon_decay: 0.99
 load_checkpoint: False
 save_checkpoint: True
 episode: 200

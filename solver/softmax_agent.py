@@ -51,14 +51,14 @@ class DQNAgent:
         action_values = self.model(state_tensor)
         action_values = action_values.squeeze(0)
         self.set_valid_action(action_values)
-        action_values[self.action_size - 1] = float('-inf')
+        action_values[self.action_size - 1] = -999
         if np.random.rand() < self.epsilon:
             valid_actions = [i for i in range(self.action_size - 1) if action_values[i] != float('-inf')]
             if valid_actions:
                 action = self.rng.choice(valid_actions)
             else:
                 action = self.action_size - 1 # action reward 0
-            entropy = np.log(len(valid_actions))
+            entropy = np.log(len(valid_actions)) if len(valid_actions) > 0 else np.log(1)
         else:
             noise = torch.rand_like(action_values) * self.noise_std
             action_values = action_values + noise
@@ -124,7 +124,7 @@ class DQNAgent:
         self.__decay_epsilon()
     
     def __decay_epsilon(self):
-        self.epsilon = max(0, self.epsilon - self.epsilon_decay)
+        self.epsilon = max(0, self.epsilon * self.epsilon_decay)
 
     def reset_noise(self):
         self.noise_std = self.env.noise_std
