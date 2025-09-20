@@ -48,7 +48,7 @@ class DQNAgent:
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
         self.set_valid_action(action_values)
-        action_values[self.action_size - 1] = float('-inf')
+        action_values[self.action_size - 1] = -999
         if np.random.rand() < self.epsilon:
             valid_actions = [i for i in range(self.action_size - 1) if action_values[i] != float('-inf')]
             if valid_actions:
