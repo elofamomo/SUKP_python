@@ -55,7 +55,7 @@ class DQNAgent:
                 action = self.rng.choice(valid_actions)
             else:
                 action = self.action_size - 1 # action reward 0
-            entropy = np.log(len(valid_actions))
+            entropy = np.log(len(valid_actions)) if len(valid_actions) > 0 else np.log(1)
         else:
             noise = torch.rand_like(action_values) * self.noise_std
             action_values = action_values + noise
@@ -125,7 +125,6 @@ class DQNAgent:
 
     def reset_noise(self):
         self.noise_std = self.env.noise_std
-        print(self.noise_std)
 
     def __decay_noise(self):
         self.noise_std = max(0.01, self.noise_std * self.noise_decay)
