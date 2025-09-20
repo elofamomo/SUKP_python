@@ -109,7 +109,7 @@ def main():
             #     entropy=np.mean(episode_entropy),
             #     terminate_prob=np.mean(episode_terminate_probs)
             # )
-            print(f"Episode {e+1}, Reward: {total_reward}, Result: {best_result}, Loss: {loss}, total step: {count}")
+            print(f"Episode {e+1}, Reward: {total_reward}, Result: {current_best_prof}, Loss: {loss}, total step: {count}")
     except KeyboardInterrupt:
         print("")
         print(f"Best result: {best_result}")
