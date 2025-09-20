@@ -107,6 +107,8 @@ def main():
             #     terminate_prob=np.mean(episode_terminate_probs)
             # )
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {current_best_prof}, Loss: {loss}, total step: {count}")
+    except Exception as e:
+        print(e)
     except KeyboardInterrupt:
         print("")
         print(f"Best result: {best_result}")
