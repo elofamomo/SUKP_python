@@ -7,6 +7,7 @@ from metric.plotter import Plotter
 from torch.utils.tensorboard import SummaryWriter
 import torch
 import numpy as np
+import traceback
 
 
 def main():
@@ -109,6 +110,7 @@ def main():
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {current_best_prof}, Loss: {loss}, total step: {count}")
     except Exception as e:
         print(e)
+        print(traceback.format_exc())
     except KeyboardInterrupt:
         print("")
         print(f"Best result: {best_result}")
@@ -123,8 +125,8 @@ def main():
     finally:
         solution_list = heap.get_top_k_states()
         solution_profit = heap.get_top_k_values()
-        solution_list.extend(episode_prof)
-        solution_profit.extend(episode_sol)
+        solution_list.extend(episode_sol)
+        solution_profit.extend(episode_prof)
         print(solution_profit)
         for i in range(20):
             current_solution_list = solution_list.copy()  # Run 10 times for diversity
