@@ -30,8 +30,8 @@ class DQNAgent:
         self.epsilon = self.env.epsilon
         self.epsilon_decay = self.env.epsilon_decay
         self.load_checkpoint = load_checkpoint
-        self.model = TransformerQNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
-        self.target_model = TransformerQNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
+        self.model = DeepQlearningNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
+        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
             checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
