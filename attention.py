@@ -18,10 +18,6 @@ class SimpleTransformer(nn.Module):
         return output
 
 # Example usage
-vocab_size = 10000  # Assume a vocabulary size
-model = SimpleTransformer(vocab_size)
-
-# Dummy input: batch of 2 sequences, each of length 5 (token IDs)
-input_seq = torch.tensor([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
-output = model(input_seq)
-print("Model Output:\n", output)
+x = torch.rand((1,201))
+print(x)
+print(x.squeeze(0).shape)

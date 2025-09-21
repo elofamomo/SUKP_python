@@ -1,5 +1,5 @@
 from collections import deque
-from networks.dqn100 import DeepQlearningNetwork
+from networks.dqn100 import DeepQlearningNetwork, TransformerQNetwork
 from helper.set_handler import SetUnionHandler
 import numpy as np
 import torch
@@ -19,17 +19,19 @@ class DQNAgent:
         self.terminate_probality = 0.0
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
+        self.device = device
         self.env = env
+        self.profits_norm = torch.tensor((env.item_profits / env.item_profits.max()).astype(np.float32), dtype=torch.float32, device=self.device)
+        self.subset_sizes_norm = torch.tensor(np.array([len(sub) for sub in env.item_subsets]) / env.n, dtype=torch.float32, device=self.device)
         self.tabu_size = self.env.tabu_size
         self.tabu = {}
         self.noise_std = self.env.noise_std
         self.noise_decay = self.env.noise_decay
         self.epsilon = self.env.epsilon
         self.epsilon_decay = self.env.epsilon_decay
-        self.device = device
         self.load_checkpoint = load_checkpoint
-        self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+        self.model = TransformerQNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
+        self.target_model = TransformerQNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
             checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
@@ -47,6 +49,7 @@ class DQNAgent:
     def action(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
+        action_values = action_values.squeeze(0)
         self.set_valid_action(action_values)
         action_values[self.action_size - 1] = -999
         if np.random.rand() < self.epsilon:
@@ -86,7 +89,7 @@ class DQNAgent:
                 target += self.gamma * self.target_model(next_state_tensor).max().item()
             target_f = self.model(state_tensor)
             target_f = target_f.clone()
-            target_f[action] = target
+            target_f[0][action] = target
             self.optimizer.zero_grad()
             loss = nn.MSELoss()(self.model(state_tensor), target_f)
             loss.backward()
