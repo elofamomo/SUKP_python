@@ -90,14 +90,11 @@ class TransformerQNetwork(nn.Module):
             profits.expand(batch_size, -1),  # Normalized profit
             subset_sizes.expand(batch_size, -1)  # Normalized subset size (proxy for overlap potential)
         ], dim=-1)
-        
         # Embed: (batch, m, d_model)
         x = self.item_embed(features) * math.sqrt(self.d_model)
         x = x + self.pos_encoding[:, :self.input_size]  # Add positional
-        
         # Self-attention: (batch, m, d_model)
         x = self.transformer(x)
-        
         # Global average pool over items: (batch, d_model)
         x_pooled = x.mean(dim=1)
         
