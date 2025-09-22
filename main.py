@@ -69,7 +69,7 @@ def main():
             current_best_prof = suk.get_profit()
             current_best_sol = suk.get_state()
 
-            while count < 250:
+            while count < 100:
                 count += 1
                 action, entropy = agent.action(state)
                 next_state, reward, terminate, success = suk.step(action)  # Adjust to your env's signature
@@ -95,6 +95,9 @@ def main():
             loss = loss / count
             agent.reset_noise()
             agent.decay_episode()
+
+            if (e + 1) % 10 == 0:
+                agent.update_target_model()
             writer.add_scalar('Reward/Episode', total_reward, e + 1)
             writer.add_scalar('Profit/Best', best_result, e + 1)
             writer.add_scalar('Loss/Average', loss, e + 1)
