@@ -15,5 +15,5 @@ agent_param:
   epsilon_decay: 0.99
 load_checkpoint: False
 save_checkpoint: True
-episode: 500
+episode: 1000
 batch_size: 128

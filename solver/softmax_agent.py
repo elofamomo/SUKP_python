@@ -1,5 +1,5 @@
 from collections import deque
-from networks.dqn100 import DeepQlearningNetwork
+from networks.dqn200 import DeepQlearningNetwork
 from helper.set_handler import SetUnionHandler
 import numpy as np
 import torch

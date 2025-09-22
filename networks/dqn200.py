@@ -5,12 +5,22 @@ class DeepQlearningNetwork(nn.Module):
     def __init__(self, input_size, output_size):
         super(DeepQlearningNetwork, self).__init__()
         self.network = nn.Sequential(
-            nn.Linear(input_size, 1024),     # First hidden layer
+            nn.Linear(input_size, 2048),  # Wider first layer for larger m
+            nn.LayerNorm(2048),
             nn.ReLU(),
-            nn.Linear(1024, 512),            # Second hidden layer
+            nn.Linear(2048, 1024),  # Second layer
+            nn.LayerNorm(1024),
             nn.ReLU(),
-            nn.Linear(512, output_size),            # Third hidden layer
-             # Output: 2*m+1 (e.g., 201 for m=100)
+            nn.Linear(1024, 512),  # Third layer
+            nn.LayerNorm(512),
+            nn.ReLU(),
+            nn.Linear(512, 512),  # Added fourth layer for depth
+            nn.LayerNorm(512),
+            nn.ReLU(),
+            nn.Linear(512, 256),  # Fifth layer
+            nn.LayerNorm(256),
+            nn.ReLU(),
+            nn.Linear(256, output_size)  # Output
         )
 
     def forward(self, x):
