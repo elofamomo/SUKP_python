@@ -62,6 +62,7 @@ def main():
             terminate = False
             total_reward = 0.0
             loss = 0.0
+            grad_norm = 0.0
             count = 0
             episode_entropy = []
             current_best_prof = suk.get_profit()
@@ -87,10 +88,13 @@ def main():
                 if suk.get_profit() > best_result:
                     best_result = suk.get_profit()
                     best_sol = suk.get_state()
-                loss += agent.replay(batch_size)
+                episode_loss, episode_grad_norm = agent.replay(batch_size)
+                loss += episode_loss
+                grad_norm += episode_grad_norm
             episode_sol.append(current_best_sol)
             episode_prof.append(current_best_prof)
             loss = loss / count
+            grad_norm = grad_norm / count
             agent.reset_noise()
             agent.decay_episode()
             writer.add_scalar('Reward/Episode', total_reward, e + 1)
@@ -98,7 +102,7 @@ def main():
             writer.add_scalar('Loss/Average', loss, e + 1)
             writer.add_scalar('Weight/Final', suk.get_weight(), e + 1)
             writer.add_scalar('Entropy/Average', np.mean(episode_entropy), e + 1)
-            
+            writer.add_scalar("Grad_Norm/Average", grad_norm, e + 1)
             # plotter.log_episode(
             #     total_reward=total_reward,
             #     best_profit=best_result,

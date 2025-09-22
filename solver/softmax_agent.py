@@ -30,8 +30,8 @@ class DQNAgent:
         self.epsilon = self.env.epsilon
         self.epsilon_decay = self.env.epsilon_decay
         self.load_checkpoint = load_checkpoint
-        self.model = DeepQlearningNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
-        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size, self.profits_norm, self.subset_sizes_norm).to(self.device)
+        self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
             checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
@@ -76,11 +76,12 @@ class DQNAgent:
     
     def replay(self, batch_size):
         if len(self.memory) < batch_size:
-            return 0.0
+            return 0.0, 0.0
         current_batch_size = batch_size
         indies = self.rng.choice(len(self.memory), size=current_batch_size, replace=False)
         minibatch = [self.memory[i] for i in indies]
         total_loss = 0.0
+        total_grad_norm = 0.0
         for state, action, reward, next_state, terminate in minibatch:
             state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
             next_state_tensor = torch.tensor(next_state, dtype=torch.float32, device=self.device)
@@ -93,10 +94,18 @@ class DQNAgent:
             self.optimizer.zero_grad()
             loss = nn.MSELoss()(self.model(state_tensor), target_f)
             loss.backward()
+            grad_norm = 0.0
+            for p in self.model.parameters():
+                if p.grad is not None:
+                    grad_norm += p.grad.norm(2).item() ** 2
+            grad_norm = grad_norm ** 0.5    # L2 norm
+            nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
             self.optimizer.step()
             total_loss += loss
+            total_grad_norm += grad_norm
+        average_grad_norm = total_grad_norm / batch_size
         average_loss = total_loss / batch_size
-        return average_loss
+        return average_loss, average_grad_norm
     
     def calcualte_batch_size(self, epsilon, batch_size):
         res = 0 
