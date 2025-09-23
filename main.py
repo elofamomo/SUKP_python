@@ -22,6 +22,7 @@ def main():
     print(config)
     save_checkpoint_ = config['save_checkpoint']
     load_checkpoint_ = config['load_checkpoint']
+    interval_update = config['interval_update']
     episodes = config['episodes']
     batch_size = config['batch_size']
     file_name = loader.get_filename()
@@ -94,8 +95,9 @@ def main():
             loss = loss / count
             agent.reset_noise()
             agent.decay_episode()
-
-            agent.update_target_model()
+            
+            if (e + 1) % interval_update == 0:
+                agent.update_target_model()
             writer.add_scalar('Reward/Episode', total_reward, e + 1)
             writer.add_scalar('Profit/Best', best_result, e + 1)
             writer.add_scalar('Loss/Average', loss, e + 1)
