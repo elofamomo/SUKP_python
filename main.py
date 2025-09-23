@@ -22,7 +22,7 @@ def main():
     print(config)
     save_checkpoint_ = config['save_checkpoint']
     load_checkpoint_ = config['load_checkpoint']
-    interval_update = config['interval_update']
+    interval_update = config['update_interval']
     episodes = config['episodes']
     batch_size = config['batch_size']
     file_name = loader.get_filename()
