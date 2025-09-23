@@ -17,4 +17,4 @@ load_checkpoint: False
 save_checkpoint: True
 episode: 500
 batch_size: 128
-update_interval: 2
+update_interval: 5
