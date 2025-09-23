@@ -156,13 +156,15 @@ class SUKPLoader:
             config = yaml.safe_load(f)
         load_checkpoint = config.get('load_checkpoint', bool)
         save_checkpoint = config.get('save_checkpoint', bool)
+        interval_update = config.get('update_interval', int)
         episode = config.get('episode', int)
         batch_size = config.get('batch_size', int)
         return {
             'load_checkpoint': load_checkpoint,
             'save_checkpoint': save_checkpoint,
             'episodes': episode,
-            'batch_size': batch_size
+            'batch_size': batch_size,
+            'update_interval': interval_update
         }
     def get_filename(self):
         return self.file_name
