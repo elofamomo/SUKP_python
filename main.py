@@ -79,7 +79,6 @@ def main():
                 if np.isnan(reward):
                     raise ValueError(f"nan reward {reward}")
                 agent.remember(state, action, reward, next_state, terminate)
-                heap.add(suk.get_profit(), suk.get_state())
                 state = next_state
                 total_reward += reward
                 episode_entropy.append(entropy)
@@ -96,8 +95,7 @@ def main():
             agent.reset_noise()
             agent.decay_episode()
 
-            if (e + 1) % 10 == 0:
-                agent.update_target_model()
+            agent.update_target_model()
             writer.add_scalar('Reward/Episode', total_reward, e + 1)
             writer.add_scalar('Profit/Best', best_result, e + 1)
             writer.add_scalar('Loss/Average', loss, e + 1)
@@ -127,8 +125,8 @@ def main():
         writer.close()
         return
     finally:
-        solution_list = heap.get_top_k_states()
-        solution_profit = heap.get_top_k_values()
+        solution_list = []
+        solution_profit = []
         solution_list.extend(episode_sol)
         solution_profit.extend(episode_prof)
         print(solution_profit)
