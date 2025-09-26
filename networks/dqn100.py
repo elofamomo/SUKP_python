@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
-import numpy as np
+from torch_geometric.nn import GraphConv, global_mean_pool  # Requires torch-geometric
+import torch_geometric.data as data
+
 
 class DeepQlearningNetwork(nn.Module):
     def __init__(self, input_size, output_size):

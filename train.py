@@ -127,30 +127,31 @@ def main():
         writer.close()
         return
     finally:
-        solution_list = []
-        solution_profit = []
-        solution_list.extend(episode_sol)
-        solution_profit.extend(episode_prof)
-        print(solution_profit)
-        for i in range(20):
-            current_solution_list = solution_list.copy()  # Run 10 times for diversity
-            current_profit_list = solution_profit.copy()
-            for _ in range(20): 
-                current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
-            print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
-            best_sol = current_best_sol
-            solution_list = current_solution_list
-            solution_profit = current_profit_list
-        max_profit = max(solution_profit)
-        best_sol = solution_list[solution_profit.index(max_profit)]
+        # solution_list = []
+        # solution_profit = []
+        # solution_list.extend(episode_sol)
+        # solution_profit.extend(episode_prof)
+        # print(solution_profit)
+        # for i in range(20):
+        #     current_solution_list = solution_list.copy()  # Run 10 times for diversity
+        #     current_profit_list = solution_profit.copy()
+        #     for _ in range(20): 
+        #         current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
+        #     print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
+        #     best_sol = current_best_sol
+        #     solution_list = current_solution_list
+        #     solution_profit = current_profit_list
+        # max_profit = max(solution_profit)
+        # best_sol = solution_list[solution_profit.index(max_profit)]
         result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
         print(f"Result: {result_str}")
         suk.set_state(best_sol)
         print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
-        print(f"After ILS: Max Profit: {max_profit}, Best sol: {best_sol}")
+        print(f"After ILS: Max Profit: {suk.get_profit}, Best sol: {best_sol}")
         print(f"Save result on result/{file_name}.npy")
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
+            print(f"Save checkpoints in checkpoints/{file_name}.pth")
             save_checkpoint(best_result, file_name, best_sol, agent)
         # plotter.plot_all()
         # plotter.save_metrics()
