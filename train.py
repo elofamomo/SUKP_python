@@ -60,7 +60,6 @@ def main():
         for e in range(episodes):
             print(f"Start episode {e + 1}")
             suk.reset_init(idx=e)
-            # print(f"Init solution: Profit {suk.get_profit()}, Weight {suk.get_weight()}")
             state = suk.get_state()  # Assume env has reset/step
             terminate = False
             total_reward = 0.0
@@ -104,14 +103,6 @@ def main():
             writer.add_scalar('Weight/Final', suk.get_weight(), e + 1)
             writer.add_scalar('Entropy/Average', np.mean(episode_entropy), e + 1)
             
-            # plotter.log_episode(
-            #     total_reward=total_reward,
-            #     best_profit=best_result,
-            #     loss=loss,
-            #     weight=suk.get_weight(),
-            #     entropy=np.mean(episode_entropy),
-            #     terminate_prob=np.mean(episode_terminate_probs)
-            # )
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {current_best_prof}, Loss: {loss}, total step: {count}")
     except Exception as e:
         print(e)
@@ -122,27 +113,9 @@ def main():
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
             save_checkpoint(best_result, file_name, best_sol, agent)
-        # plotter.plot_all()
-        # plotter.save_metrics()
         writer.close()
         return
     finally:
-        # solution_list = []
-        # solution_profit = []
-        # solution_list.extend(episode_sol)
-        # solution_profit.extend(episode_prof)
-        # print(solution_profit)
-        # for i in range(20):
-        #     current_solution_list = solution_list.copy()  # Run 10 times for diversity
-        #     current_profit_list = solution_profit.copy()
-        #     for _ in range(20): 
-        #         current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
-        #     print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
-        #     best_sol = current_best_sol
-        #     solution_list = current_solution_list
-        #     solution_profit = current_profit_list
-        # max_profit = max(solution_profit)
-        # best_sol = solution_list[solution_profit.index(max_profit)]
         result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
         print(f"Result: {result_str}")
         suk.set_state(best_sol)
@@ -153,8 +126,6 @@ def main():
         if save_checkpoint_:
             print(f"Save checkpoints in checkpoints/{file_name}.pth")
             save_checkpoint(best_result, file_name, best_sol, agent)
-        # plotter.plot_all()
-        # plotter.save_metrics()
         writer.close()
 
 def save_checkpoint(best_result, file_name, best_sol, agent):
