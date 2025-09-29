@@ -3,54 +3,70 @@ from helper.set_handler import SetUnionHandler
 from helper.k_heapq import TopKHeap
 from helper.generate_initial import ga_solver, hamming_distance
 from solver.softmax_agent import DQNAgent
-from metric.plotter import Plotter
-from torch.utils.tensorboard import SummaryWriter
 import torch
 import numpy as np
-import torch.optim as optim
-from networks.dqn200 import DeepQlearningNetwork
+from networks.dqn100 import DeepQlearningNetwork
 
 
+def run():
+    if torch.cuda.is_available():
+            torch.set_default_device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"using: {device}")
+    yaml_path = "helper/config.yaml"
+    loader = SUKPLoader(yaml_path)
+    data = loader.get_data()
+    param = loader.get_param()
+    config = loader.load_general_config()
+    print(config)
+    episodes = config['episodes']
+    file_name = loader.get_filename()
+    suk = SetUnionHandler(data, param)
+    agent = DQNAgent(suk, device, load_checkpoint=True, file_name=file_name)
+    agent.model.eval()
+    solution_list, solution_profit = [], []
+    best_result = 0
+    best_sol = np.array([])
+    num_of_solut = 200    
+    max_steps = 500
+    for _ in range(num_of_solut):
+        suk.reset()
+        ga_solution, ga_fitness = ga_solver(
+        suk,
+        epochs=100,
+        pop_size=50,
+        pc=0.9,  # Crossover probability
+        pm=0.4   # Mutation probability
+        )
+        solution_list.append(ga_solution)
+        solution_profit.append(ga_fitness)
+    avg_hamming = np.mean([[hamming_distance(sol1, sol2) / len(sol1) for sol2 in solution_list] for sol1 in solution_list])
+    suk.set_init_sol(solution_list) 
+    print(f"Average normalized Hamming: {avg_hamming:.3f}")
+    try:
+        for solut in range(num_of_solut):
+            suk.reset_init(idx=solut)
+            state = suk.get_state()
+            current_best_prof = suk.get_profit()
+            current_best_sol = suk.get_state()
+            steps = 0
+            while steps < max_steps:
+                state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device)
+                
 
-if torch.cuda.is_available():
-        torch.set_default_device('cuda')
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"using: {device}")
-yaml_path = "helper/config.yaml"
-loader = SUKPLoader(yaml_path)
-data = loader.get_data()
-param = loader.get_param()
-config = loader.load_general_config()
-print(config)
-save_checkpoint_ = config['save_checkpoint']
-load_checkpoint_ = config['load_checkpoint']
-update_interval = config['update_interval']
-episodes = config['episodes']
-batch_size = config['batch_size']
-file_name = loader.get_filename()
-suk = SetUnionHandler(data, param)
-network = DeepQlearningNetwork(suk.m, 2 * suk.m + 1).to(device) 
-state_size = suk.m
-action_size = 2 * suk.m + 1
-tabu_size = suk.tabu_size
-tabu = {}
-checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
-network.load_state_dict(checkpoint['model_state_dict'])
-optimizer = optim.Adam(network.parameters(), lr=0.001)
-optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    except Exception as e:
+        print(e)
+    except KeyboardInterrupt:
+        print("")
+        print(f"Best result: {best_result}")
+        print(f"Save result on result/{file_name}.npy")
+        np.save(f"result/{file_name}.npy", best_sol)        
+    finally:
+        print("")
+        print(f"Best result: {best_result}")
+        print(f"Save result on result/{file_name}.npy")
+        np.save(f"result/{file_name}.npy", best_sol) 
 
 
-
-def set_valid_action(action_values):
-    for action in range(state_size):
-        if action in suk.selected_items or action in tabu:
-            action_values[action] = float('-inf')
-        else:
-            marginal_weight = sum(suk.element_weights[elem] for elem in suk.item_subsets[action] if suk.element_counts[elem] == 0)
-            if suk.total_weight + marginal_weight > suk.capacity:
-                action_values[action] = float('-inf')
-
-    for action in range(state_size, 2 * state_size):
-        if action - state_size not in suk.selected_items or action in tabu:
-            action_values[action] = float('-inf')
-
+if __name__ == "__main__":
+      run()

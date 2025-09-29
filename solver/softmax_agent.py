@@ -1,5 +1,5 @@
 from collections import deque
-from networks.dqn200 import DeepQlearningNetwork
+from networks import dqn100, dqn200
 from helper.set_handler import SetUnionHandler
 import numpy as np
 import torch
@@ -28,8 +28,13 @@ class DQNAgent:
         self.epsilon_decay = self.env.epsilon_decay
         self.device = device
         self.load_checkpoint = load_checkpoint
-        self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-        self.target_model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+        model_choice = max(self.env.m, self.env.n)
+        if model_choice == 100:
+            self.model = dqn100.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+            self.target_model = dqn100.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+        elif model_choice == 200:
+            self.model = dqn200.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+            self.target_model = dqn200.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
             checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
