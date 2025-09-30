@@ -28,7 +28,6 @@ def main():
     file_name = loader.get_filename()
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk, device, load_checkpoint_, file_name)
-    heap = TopKHeap(100)
     plotter = Plotter("figures", file_name)
     writer = SummaryWriter(log_dir=f'runs/logs/{file_name}')
     plotter.set_capacity(suk.capacity)

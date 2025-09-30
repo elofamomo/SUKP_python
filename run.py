@@ -5,7 +5,7 @@ from helper.generate_initial import ga_solver, hamming_distance
 from solver.softmax_agent import DQNAgent
 import torch
 import numpy as np
-from networks.dqn100 import DeepQlearningNetwork
+import torch.distributions as dist
 
 
 def run():
@@ -52,8 +52,16 @@ def run():
             steps = 0
             while steps < max_steps:
                 state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device)
-                
-
+                with torch.no_grad():
+                    action_values = agent.model(state_tensor) 
+                    agent.set_valid_action(action_values)
+                    action_values[agent.action_size - 1] = -999
+                    log_probs = torch.log_softmax(action_values / agent.env.tau, dim=0)
+                    softmax_torch = torch.exp(log_probs)
+                    action_dist = dist.Categorical(logits=log_probs)
+            action = action_dist.sample().item()
+            next_state, reward, terminate, success = suk.step(action)
+            
     except Exception as e:
         print(e)
     except KeyboardInterrupt:
