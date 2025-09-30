@@ -42,6 +42,7 @@ def run():
         solution_profit.append(ga_fitness)
     avg_hamming = np.mean([[hamming_distance(sol1, sol2) / len(sol1) for sol2 in solution_list] for sol1 in solution_list])
     suk.set_init_sol(solution_list) 
+    solution_list, solution_profit = [], []
     print(f"Average normalized Hamming: {avg_hamming:.3f}")
     try:
         for solut in range(num_of_solut):
@@ -49,6 +50,7 @@ def run():
             state = suk.get_state()
             current_best_prof = suk.get_profit()
             current_best_sol = suk.get_state()
+            print(current_best_prof)
             steps = 0
             while steps < max_steps:
                 state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device)
@@ -61,7 +63,18 @@ def run():
                     action_dist = dist.Categorical(logits=log_probs)
             action = action_dist.sample().item()
             next_state, reward, terminate, success = suk.step(action)
-            
+            if success: 
+                agent.update_tabu(action)
+            state = next_state
+            if suk.get_profit() > current_best_prof:
+                current_best_prof = suk.get_profit()
+                current_best_sol = suk.get_state()
+            print(f"Best sol: {current_best_prof}")
+            solution_list.append(current_best_prof)
+            solution_profit.append(current_best_prof)
+        best_result = max(solution_profit)
+        best_sol = solution_list[solution_profit.index(best_result)]
+
     except Exception as e:
         print(e)
     except KeyboardInterrupt:

@@ -3,7 +3,7 @@ from helper.set_handler import SetUnionHandler
 from helper.k_heapq import TopKHeap
 from helper.generate_initial import ga_solver, hamming_distance
 from solver.softmax_agent import DQNAgent
-from metric.plotter import Plotter
+from helper.plotter import Plotter
 from torch.utils.tensorboard import SummaryWriter
 import torch
 import numpy as np
@@ -29,7 +29,7 @@ def main():
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk, device, load_checkpoint_, file_name)
     plotter = Plotter("figures", file_name)
-    writer = SummaryWriter(log_dir=f'runs/logs/{file_name}')
+    writer = SummaryWriter(log_dir=f'metrics/logs/{file_name}')
     plotter.set_capacity(suk.capacity)
     best_result = 0
     best_sol = np.array([])
