@@ -6,6 +6,7 @@ from solver.softmax_agent import DQNAgent
 import torch
 import numpy as np
 import torch.distributions as dist
+from metaheuristics import ils
 
 
 def run():
@@ -22,13 +23,17 @@ def run():
     episodes = config['episodes']
     file_name = loader.get_filename()
     suk = SetUnionHandler(data, param)
+
+    # load model
     agent = DQNAgent(suk, device, load_checkpoint=True, file_name=file_name)
     agent.model.eval()
-    solution_list, solution_profit = [], []
+    init_list, init_profit = [], []
     best_result = 0
     best_sol = np.array([])
-    num_of_solut = 200    
+    num_of_solut = 1    
     max_steps = 500
+
+    # iterate until reach enough init solution
     for _ in range(num_of_solut):
         suk.reset()
         ga_solution, ga_fitness = ga_solver(
@@ -38,19 +43,22 @@ def run():
         pc=0.9,  # Crossover probability
         pm=0.4   # Mutation probability
         )
-        solution_list.append(ga_solution)
-        solution_profit.append(ga_fitness)
-    avg_hamming = np.mean([[hamming_distance(sol1, sol2) / len(sol1) for sol2 in solution_list] for sol1 in solution_list])
-    suk.set_init_sol(solution_list) 
-    solution_list, solution_profit = [], []
+        init_list.append(ga_solution)
+        init_profit.append(ga_fitness)
+    avg_value = sum(init_profit) / num_of_solut
+    print(f"Average profit value: {avg_value}")
+    avg_hamming = np.mean([[hamming_distance(sol1, sol2) / len(sol1) for sol2 in init_list] for sol1 in init_list])
+    suk.set_init_sol(init_list) 
     print(f"Average normalized Hamming: {avg_hamming:.3f}")
+    solution_list, solution_profit = [], []
+
     try:
         for solut in range(num_of_solut):
             suk.reset_init(idx=solut)
             state = suk.get_state()
             current_best_prof = suk.get_profit()
             current_best_sol = suk.get_state()
-            print(current_best_prof)
+            print(f"Solution {solut}, After GA: {current_best_prof}", end = ' -- ')
             steps = 0
             while steps < max_steps:
                 state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device)
@@ -61,28 +69,46 @@ def run():
                     log_probs = torch.log_softmax(action_values / agent.env.tau, dim=0)
                     softmax_torch = torch.exp(log_probs)
                     action_dist = dist.Categorical(logits=log_probs)
-            action = action_dist.sample().item()
-            next_state, reward, terminate, success = suk.step(action)
-            if success: 
-                agent.update_tabu(action)
-            state = next_state
-            if suk.get_profit() > current_best_prof:
-                current_best_prof = suk.get_profit()
-                current_best_sol = suk.get_state()
-            print(f"Best sol: {current_best_prof}")
+                action = action_dist.sample().item()
+                next_state, reward, terminate, success = suk.step(action)
+                agent.decay_step()
+                if success: 
+                    agent.update_tabu(action)
+                state = next_state
+                if suk.get_profit() > current_best_prof:
+                    current_best_prof = suk.get_profit()
+                    current_best_sol = suk.get_state()
+                steps += 1
+            print(f" After DQN: {current_best_prof}", end=' -- ')
             solution_list.append(current_best_prof)
             solution_profit.append(current_best_prof)
-        best_result = max(solution_profit)
-        best_sol = solution_list[solution_profit.index(best_result)]
+        
 
     except Exception as e:
         print(e)
     except KeyboardInterrupt:
+        # for i in range(len(solution_list)):
+        #     hc_solution = solution_list[i]
+        #     final_solution, final_profit = ils.ils_with_tabu(suk, hc_solution)
+        #     solution_list[i] = final_solution
+        #     solution_profit[i] = final_profit
+        #     print(f"After ILS: {solution_profit[i]}")
+        # best_result = max(solution_profit)
+        # best_sol = solution_list[solution_profit.index(best_result)]
+        
         print("")
         print(f"Best result: {best_result}")
         print(f"Save result on result/{file_name}.npy")
-        np.save(f"result/{file_name}.npy", best_sol)        
+        np.save(f"result/{file_name}.npy", best_sol)   
+        return     
     finally:
+        for i in range(len(solution_list)):
+            hc_solution = solution_list[i]
+            final_solution, final_profit = ils.ils_with_tabu(suk, hc_solution)
+            solution_list[i] = final_solution
+            solution_profit[i] = final_profit
+        best_result = max(solution_profit)
+        best_sol = solution_list[solution_profit.index(best_result)]
         print("")
         print(f"Best result: {best_result}")
         print(f"Save result on result/{file_name}.npy")
