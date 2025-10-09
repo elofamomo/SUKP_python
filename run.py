@@ -30,8 +30,8 @@ def run():
     init_list, init_profit = [], []
     best_result = 0
     best_sol = np.array([])
-    num_of_solut = 1    
-    max_steps = 500
+    num_of_solut = 200    
+    max_steps = 1000
 
     # iterate until reach enough init solution
     for _ in range(num_of_solut):
@@ -79,36 +79,45 @@ def run():
                     current_best_prof = suk.get_profit()
                     current_best_sol = suk.get_state()
                 steps += 1
-            print(f" After DQN: {current_best_prof}", end=' -- ')
-            solution_list.append(current_best_prof)
+            print(f" After DQN: {current_best_prof}")
+            solution_list.append(current_best_sol)
             solution_profit.append(current_best_prof)
         
 
     except Exception as e:
         print(e)
     except KeyboardInterrupt:
-        # for i in range(len(solution_list)):
-        #     hc_solution = solution_list[i]
-        #     final_solution, final_profit = ils.ils_with_tabu(suk, hc_solution)
-        #     solution_list[i] = final_solution
-        #     solution_profit[i] = final_profit
-        #     print(f"After ILS: {solution_profit[i]}")
-        # best_result = max(solution_profit)
-        # best_sol = solution_list[solution_profit.index(best_result)]
-        
         print("")
         print(f"Best result: {best_result}")
         print(f"Save result on result/{file_name}.npy")
         np.save(f"result/{file_name}.npy", best_sol)   
         return     
     finally:
-        for i in range(len(solution_list)):
-            hc_solution = solution_list[i]
-            final_solution, final_profit = ils.ils_with_tabu(suk, hc_solution)
-            solution_list[i] = final_solution
-            solution_profit[i] = final_profit
-        best_result = max(solution_profit)
-        best_sol = solution_list[solution_profit.index(best_result)]
+        # for i in range(len(solution_list)):
+        #     hc_solution = solution_list[i]
+        #     final_solution, final_profit = ils.ils_with_tabu(suk, hc_solution)
+        #     solution_list[i] = final_solution
+        #     solution_profit[i] = final_profit
+        # best_result = max(solution_profit)
+        # best_sol = solution_list[solution_profit.index(best_result)]
+        for i in range(10):
+            current_solution_list = solution_list.copy()  # Run 10 times for diversity
+            current_profit_list = solution_profit.copy()
+            for _ in range(3): 
+                current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
+            print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
+            best_sol = current_best_sol
+            solution_list = current_solution_list
+            solution_profit = current_profit_list
+        max_profit = max(solution_profit)
+        best_sol = solution_list[solution_profit.index(max_profit)]
+        result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
+        print(f"Result: {result_str}")
+        suk.set_state(best_sol)
+        print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
+        print(f"After ILS: Max Profit: {max_profit}, Best sol: {best_sol}")
+        print(f"Save result on result/{file_name}.npy")
+        np.save(f"result/{file_name}.npy", best_sol)
         print("")
         print(f"Best result: {best_result}")
         print(f"Save result on result/{file_name}.npy")

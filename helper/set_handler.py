@@ -214,7 +214,6 @@ class SetUnionHandler:
         if not solution_list:
             raise ValueError("Solution list is empty")
 
-        # Initialize from a random GA solution
         for i in range(len(solution_list)):
             solution = solution_list[i]
             self.set_state(solution)

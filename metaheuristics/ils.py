@@ -1,6 +1,7 @@
 import random
+from helper.set_handler import SetUnionHandler
 
-def ils_with_tabu(handler, start_solution, max_iter=100, tabu_tenure=10, perturb_strength=3):
+def ils_with_tabu(handler: SetUnionHandler, start_solution, max_iter=100, tabu_tenure=10, perturb_strength=3):
     """
     ILS with tabu search to refine a solution.
     
