@@ -1,0 +1,20 @@
+sukp_data:
+  m: 100
+  n: 100
+  alpha: 0.10
+  beta: 0.75
+  instance: 1
+agent_param:
+  penalty: 0
+  sigma: 0.5
+  tau: 5.0
+  tabu_size: 30
+  noise_std: 0.0
+  noise_decay: 0.98
+  epsilon: 1.0
+  epsilon_decay: 0.99
+load_checkpoint: False
+save_checkpoint: True
+episode: 500
+batch_size: 128
+update_interval: 5
