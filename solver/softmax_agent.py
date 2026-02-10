@@ -1,5 +1,5 @@
 from collections import deque
-from networks import dqn100, dqn200
+from networks import dqn100, dqn200, transformer
 from helper.set_handler import SetUnionHandler
 import numpy as np
 import torch
@@ -28,13 +28,8 @@ class DQNAgent:
         self.epsilon_decay = self.env.epsilon_decay
         self.device = device
         self.load_checkpoint = load_checkpoint
-        model_choice = max(self.env.m, self.env.n)
-        if model_choice == 100:
-            self.model = dqn100.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-            self.target_model = dqn100.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-        elif model_choice == 200:
-            self.model = dqn200.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-            self.target_model = dqn200.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
+        self.model = transformer.TransformerQNetworkNoEdges(self.state_size, self.action_size, env).to(self.device)
+        self.target_model = transformer.TransformerQNetworkNoEdges(self.state_size, self.action_size, env).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
             checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
@@ -52,6 +47,7 @@ class DQNAgent:
     def action(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
+        action_values = action_values.squeeze(0)
         self.set_valid_action(action_values)
         action_values[self.action_size - 1] = -999
         if np.random.rand() < self.epsilon:
@@ -67,6 +63,7 @@ class DQNAgent:
             log_probs = torch.log_softmax(action_values / self.env.tau, dim=0)
             softmax_torch = torch.exp(log_probs)
             self.terminate_probability = softmax_torch[self.action_size - 1].item()
+    
             action_dist = dist.Categorical(logits=log_probs)
             action = action_dist.sample().item()
             entropy = -torch.sum(softmax_torch * torch.log(softmax_torch + 1e-8)).item()
@@ -88,12 +85,13 @@ class DQNAgent:
             next_state_tensor = torch.tensor(next_state, dtype=torch.float32, device=self.device)
             target = reward 
             if not terminate:
-                target += self.gamma * self.target_model(next_state_tensor).max().item()
+                target += self.gamma * self.target_model(next_state_tensor).squeeze(0).max().item()
             target_f = self.model(state_tensor)
+            target_f = target_f.squeeze(0)
             target_f = target_f.clone()
             target_f[action] = target
             self.optimizer.zero_grad()
-            loss = nn.MSELoss()(self.model(state_tensor), target_f)
+            loss = nn.MSELoss()(self.model(state_tensor).squeeze(0), target_f)
             loss.backward()
             self.optimizer.step()
             total_loss += loss

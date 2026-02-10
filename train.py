@@ -67,7 +67,6 @@ def main():
             episode_entropy = []
             current_best_prof = suk.get_profit()
             current_best_sol = suk.get_state()
-
             while count < 100:
                 count += 1
                 action, entropy = agent.action(state)
