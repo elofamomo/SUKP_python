@@ -7,7 +7,13 @@ from helper.plotter import Plotter
 from torch.utils.tensorboard import SummaryWriter
 import torch
 import numpy as np
-
+import wandb
+wandb.init(
+    mode="online",              # ← important: use "online"
+    entity="elofamomo",        # can be anything
+    project="sukp",
+    name= "transformer analyst"
+)
 
 def main():
     if torch.cuda.is_available():
@@ -29,7 +35,6 @@ def main():
     suk = SetUnionHandler(data, param)
     agent = DQNAgent(suk, device, load_checkpoint_, file_name)
     plotter = Plotter("figures", file_name)
-    writer = SummaryWriter(log_dir=f'metrics/logs/{file_name}')
     plotter.set_capacity(suk.capacity)
     best_result = 0
     best_sol = np.array([])
@@ -95,11 +100,13 @@ def main():
             
             if (e + 1) % update_interval == 0:
                 agent.update_target_model()
-            writer.add_scalar('Reward/Episode', total_reward, e + 1)
-            writer.add_scalar('Profit/Best', best_result, e + 1)
-            writer.add_scalar('Loss/Average', loss, e + 1)
-            writer.add_scalar('Weight/Final', suk.get_weight(), e + 1)
-            writer.add_scalar('Entropy/Average', np.mean(episode_entropy), e + 1)
+            wandb.log({
+        "Reward/Episode": total_reward,
+        "Profit/Best": best_result,
+        "Loss/Average": loss,
+        "Weight/Final": suk.get_weight(),
+        "Entropy/Average": np.mean(episode_entropy),
+    }, step=e + 1)
             
             print(f"Episode {e+1}, Reward: {total_reward}, Result: {current_best_prof}, Loss: {loss}, total step: {count}")
     except Exception as e:
@@ -111,7 +118,7 @@ def main():
         np.save(f"result/{file_name}.npy", best_sol)
         if save_checkpoint_:
             save_checkpoint(best_result, file_name, best_sol, agent)
-        writer.close()
+        wandb.finish()
         return
     finally:
         result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
@@ -124,7 +131,7 @@ def main():
         if save_checkpoint_:
             print(f"Save checkpoints in checkpoints/{file_name}.pth")
             save_checkpoint(best_result, file_name, best_sol, agent)
-        writer.close()
+        wandb.finish()
 
 def save_checkpoint(best_result, file_name, best_sol, agent):
     checkpoint = {

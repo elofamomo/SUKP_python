@@ -23,6 +23,8 @@ sdist/
 var/
 checkpoints/
 wheels/
+wandb/
+result/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
