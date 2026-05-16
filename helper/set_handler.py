@@ -96,6 +96,7 @@ class SetUnionHandler:
                 self.total_weight -= self.element_weights[elem]
         return True
 
+    @property
     def get_profit(self):
         """
         Gets the current total profit (objective value).

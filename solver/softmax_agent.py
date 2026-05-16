@@ -53,7 +53,7 @@ class DQNAgent:
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
         action_values = self.model(state_tensor)
         self.set_valid_action(action_values)
-        action_values[self.action_size - 1] = -999
+        action_values[self.action_size - 1] = float('-inf')
         if np.random.rand() < self.epsilon:
             valid_actions = [i for i in range(self.action_size - 1) if action_values[i] != float('-inf')]
             if valid_actions:
@@ -67,7 +67,7 @@ class DQNAgent:
             log_probs = torch.log_softmax(action_values / self.env.tau, dim=0)
             softmax_torch = torch.exp(log_probs)
             self.terminate_probability = softmax_torch[self.action_size - 1].item()
-            action_dist = dist.Categorical(logits=log_probs)
+            action_dist = dist.Categorical(probs=softmax_torch)
             action = action_dist.sample().item()
             entropy = -torch.sum(softmax_torch * torch.log(softmax_torch + 1e-8)).item()
         # if 0 <= action and action < self.state_size:
@@ -96,7 +96,7 @@ class DQNAgent:
             loss = nn.MSELoss()(self.model(state_tensor), target_f)
             loss.backward()
             self.optimizer.step()
-            total_loss += loss
+            total_loss += loss.item()
         average_loss = total_loss / batch_size
         return average_loss
     
