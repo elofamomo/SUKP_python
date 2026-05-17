@@ -13,7 +13,9 @@ class DQNAgent:
     def __init__(self, env: SetUnionHandler, device, load_checkpoint, file_name):
         self.state_size = env.m
         self.action_size = 2 * env.m + 1   #an action represent for terminate
-        self.memory = deque(maxlen=10000)
+        self.memory_min = 1000
+        self.memory_max = 10000
+        self.memory = deque(maxlen=self.memory_min)
         self.gamma = 0.99
         self.epsilon = 1.0
         self.epsilon_max = self.epsilon
@@ -36,6 +38,12 @@ class DQNAgent:
 
     def update_target_model(self):
         self.target_model.load_state_dict(self.model.state_dict())
+
+    def _resize_memory(self):
+        rate = (self.epsilon - self.epsilon_min) / (self.epsilon_max - self.epsilon_min)
+        target_size = round(self.memory_min + (1 - rate) * (self.memory_max - self.memory_min))
+        if target_size != self.memory.maxlen:
+            self.memory = deque(self.memory, maxlen=target_size)
     
     def remember(self, state, action, reward, next_state, terminate):
         self.memory.append((state, action, reward, next_state, terminate))
@@ -50,6 +58,7 @@ class DQNAgent:
         return None
     
     def replay(self, batch_size, decay_rate):
+        self._resize_memory()
         if len(self.memory) < batch_size:
             return 0.0
         current_batch_size = batch_size
