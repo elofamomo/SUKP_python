@@ -13,8 +13,9 @@ agent_param:
   noise_decay: 0.98
   epsilon: 1.0
   epsilon_decay: 0.99
+  gamma: 1.0
 load_checkpoint: False
 save_checkpoint: True
-episode: 500
+episode: 1000
 batch_size: 128
 update_interval: 5

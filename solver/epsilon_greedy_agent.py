@@ -16,14 +16,14 @@ class DQNAgent:
         self.memory_min = 1000
         self.memory_max = 10000
         self.memory = deque(maxlen=self.memory_min)
-        self.gamma = 0.99
+        self.env = env
+        self.gamma = self.env.gamma
         self.epsilon = 1.0
         self.epsilon_max = self.epsilon
         self.epsilon_min = 0.1
         self.epsilon_decay = 0.9
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
-        self.env = env
         self.device = device
         self.load_checkpoint = load_checkpoint
         self.model = DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)

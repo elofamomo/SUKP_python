@@ -30,6 +30,7 @@ class SetUnionHandler:
         self.noise_decay = param['noise_decay']
         self.epsilon = param['epsilon']
         self.epsilon_decay = param['epsilon_decay']
+        self.gamma = param['gamma']
         self.init_sol = []
         self.selected_items = set()
         self.element_counts = np.zeros(self.n, dtype=int)
