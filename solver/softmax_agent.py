@@ -15,11 +15,11 @@ class DQNAgent:
         self.state_size = env.m
         self.action_size = 2 * env.m + 1   #an action represent for terminate
         self.memory = deque(maxlen=10000)
-        self.gamma = self.env.gamma
         self.terminate_probality = 0.0
         self.learning_rate = 0.001
         self.rng = np.random.default_rng(42)
         self.env = env
+        self.gamma = self.env.gamma
         self.tabu_size = self.env.tabu_size
         self.tabu = {}
         self.noise_std = self.env.noise_std
