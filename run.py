@@ -3,10 +3,11 @@ from helper.set_handler import SetUnionHandler
 from helper.k_heapq import TopKHeap
 from helper.generate_initial import ga_solver, hamming_distance
 from solver.softmax_agent import DQNAgent
+import os
 import torch
 import numpy as np
 import torch.distributions as dist
-from metaheuristics import ils
+from metaheuristics.ils import ils_with_tabu
 
 
 def run():
@@ -93,35 +94,34 @@ def run():
         np.save(f"result/{file_name}.npy", best_sol)   
         return     
     finally:
-        # for i in range(len(solution_list)):
-        #     hc_solution = solution_list[i]
-        #     final_solution, final_profit = ils.ils_with_tabu(suk, hc_solution)
-        #     solution_list[i] = final_solution
-        #     solution_profit[i] = final_profit
-        # best_result = max(solution_profit)
-        # best_sol = solution_list[solution_profit.index(best_result)]
-        for i in range(10):
-            current_solution_list = solution_list.copy()  # Run 10 times for diversity
-            current_profit_list = solution_profit.copy()
-            for _ in range(3): 
-                current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
-            print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
-            best_sol = current_best_sol
-            solution_list = current_solution_list
-            solution_profit = current_profit_list
+        for i, hc_solution in enumerate(solution_list):
+            final_solution, final_profit = ils_with_tabu(suk, hc_solution, max_iter=300, tabu_tenure=15)
+            print(f"ILS {i+1}/{len(solution_list)}: {solution_profit[i]:.1f} -> {final_profit:.1f}")
+            if final_profit > solution_profit[i]:
+                solution_list[i] = final_solution
+                solution_profit[i] = final_profit
         max_profit = max(solution_profit)
         best_sol = solution_list[solution_profit.index(max_profit)]
         result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
         print(f"Result: {result_str}")
         suk.set_state(best_sol)
         print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
-        print(f"After ILS: Max Profit: {max_profit}, Best sol: {best_sol}")
-        print(f"Save result on result/{file_name}.npy")
+        print(f"After ILS: Max Profit: {max_profit}")
         np.save(f"result/{file_name}.npy", best_sol)
-        print("")
-        print(f"Best result: {best_result}")
-        print(f"Save result on result/{file_name}.npy")
-        np.save(f"result/{file_name}.npy", best_sol) 
+
+        saved_result_path = f"saved_result/{file_name}.npy"
+        if os.path.exists(saved_result_path):
+            saved_sol = np.load(saved_result_path)
+            suk.set_state(saved_sol)
+            saved_profit = suk.get_profit()
+            if max_profit > saved_profit:
+                print(f"New best for {file_name}! {saved_profit} -> {max_profit} (+{max_profit - saved_profit:.1f}). Updating saved_result.")
+                np.save(saved_result_path, best_sol)
+            else:
+                print(f"Saved result ({saved_profit}) still holds for {file_name}.")
+        else:
+            print(f"No saved result found for {file_name}. Saving as new record ({max_profit}).")
+            np.save(saved_result_path, best_sol)
 
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ from mealpy.evolutionary_based.GA import OriginalGA
 from mealpy.swarm_based.ABC import OriginalABC
 import random
 import os
-from helper.k_heapq import TopKHeap
 from helper.generate_initial import random_gen
+from metaheuristics.ils import ils_with_tabu
 
 class SUKPProblem(Problem):
     """
@@ -319,31 +319,35 @@ def main():
     print(solution_profit)
     print(sum(solution_profit) / len(solution_profit))
     print(max(solution_profit))
-    heap = TopKHeap(100)
-    solution_list = [best_sol]
-    solution_profit = [total_profit]
-    print(solution_profit)
-    for i in range(10):
-        current_solution_list = solution_list.copy()  # Run 10 times for diversity
-        current_profit_list = solution_profit.copy()
-        for _ in range(200): 
-            current_best_sol, current_best_prof = suk.iterated_local_search(solution_list, current_solution_list, current_profit_list)
-        print(f"Loop {i}: Current profit: {current_profit_list}, \n Best profit: {current_best_prof}")
-        if max(current_profit_list) > max(solution_profit):
-            best_sol = current_best_sol
-            solution_list = current_solution_list
-            solution_profit = current_profit_list
-            
+    num_restarts = 20
+    print(f"Starting exploitation: initial profit={total_profit}")
+    for i in range(num_restarts):
+        sol, profit = ils_with_tabu(suk, best_sol, max_iter=300, tabu_tenure=15)
+        print(f"Restart {i+1}/{num_restarts}: profit={profit}, best={total_profit}")
+        if profit > total_profit:
+            total_profit = profit
+            best_sol = sol
 
-    max_profit = max(solution_profit)
-    best_sol = solution_list[solution_profit.index(max_profit)]
     result_str = ' '.join(['1' if x > 0.5 else '0' for x in best_sol])
     print(f"Result: {result_str}")
+    suk.set_state(best_sol)
     print(f"Total weight: {suk.get_weight()}, capacity: {loader.capacity}")
-    np.save(f"result/{file_name}.npy", best_sol)
-    avg_profit = np.mean(solution_profit)
+    np.save(npy_path, best_sol)
+    print(f"After tabu search: Max Profit: {total_profit}")
 
-    print(f"After ILS: Max Profit: {max_profit}, Average Profit: {avg_profit}")
+    saved_result_path = os.path.join('saved_result', f'{file_name}.npy')
+    if os.path.exists(saved_result_path):
+        saved_sol = np.load(saved_result_path)
+        suk.set_state(saved_sol)
+        saved_profit = suk.get_profit()
+        if total_profit > saved_profit:
+            print(f"New best for {file_name}! {saved_profit} -> {total_profit} (+{total_profit - saved_profit:.1f}). Updating saved_result.")
+            np.save(saved_result_path, best_sol)
+        else:
+            print(f"Saved result ({saved_profit}) still holds for {file_name}.")
+    else:
+        print(f"No saved result found for {file_name}. Saving as new record ({total_profit}).")
+        np.save(saved_result_path, best_sol)
 
     
 if __name__ == "__main__":
