@@ -1,5 +1,5 @@
 from collections import deque
-from networks import dqn100, dqn200
+from networks.gnn import BipartiteQNetwork
 from helper.set_handler import SetUnionHandler
 import numpy as np
 import torch
@@ -28,15 +28,9 @@ class DQNAgent:
         self.epsilon_decay = self.env.epsilon_decay
         self.device = device
         self.load_checkpoint = load_checkpoint
-        model_choice = max(self.env.m, self.env.n)
-        if model_choice <= 100:
-            self.model = dqn100.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-            self.target_model = dqn100.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-        elif model_choice <= 200:
-            self.model = dqn200.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-            self.target_model = dqn200.DeepQlearningNetwork(self.state_size, self.action_size).to(self.device)
-        else:
-            raise ValueError(f"No network defined for model_choice={model_choice} (max(m={env.m}, n={env.n}))")
+        instance = (env.item_profits, env.element_weights, env.item_subsets, env.capacity)
+        self.model = BipartiteQNetwork(*instance).to(self.device)
+        self.target_model = BipartiteQNetwork(*instance).to(self.device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         if self.load_checkpoint:
             checkpoint = torch.load(f'checkpoints/{file_name}.pth', weights_only=False)
@@ -49,11 +43,14 @@ class DQNAgent:
         self.target_model.load_state_dict(self.model.state_dict())
     
     def remember(self, state, action, reward, next_state, terminate):
-        self.memory.append((state, action, reward, next_state, terminate))
+        # Called right after env.step, so the env is in next_state here
+        next_mask = self.valid_action_mask()
+        self.memory.append((state, action, reward, next_state, terminate, next_mask))
 
     def action(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
-        action_values = self.model(state_tensor)
+        with torch.no_grad():
+            action_values = self.model(state_tensor)
         self.set_valid_action(action_values)
         action_values[self.action_size - 1] = float('-inf')
         if np.random.rand() < self.epsilon:
@@ -81,26 +78,25 @@ class DQNAgent:
     def replay(self, batch_size):
         if len(self.memory) < batch_size:
             return 0.0
-        current_batch_size = batch_size
-        indies = self.rng.choice(len(self.memory), size=current_batch_size, replace=False)
-        minibatch = [self.memory[i] for i in indies]
-        total_loss = 0.0
-        for state, action, reward, next_state, terminate in minibatch:
-            state_tensor = torch.tensor(state, dtype=torch.float32, device=self.device)
-            next_state_tensor = torch.tensor(next_state, dtype=torch.float32, device=self.device)
-            target = reward 
-            if not terminate:
-                target += self.gamma * self.target_model(next_state_tensor).max().item()
-            target_f = self.model(state_tensor)
-            target_f = target_f.clone()
-            target_f[action] = target
-            self.optimizer.zero_grad()
-            loss = nn.MSELoss()(self.model(state_tensor), target_f)
-            loss.backward()
-            self.optimizer.step()
-            total_loss += loss.item()
-        average_loss = total_loss / batch_size
-        return average_loss
+        indies = self.rng.choice(len(self.memory), size=batch_size, replace=False)
+        states, actions, rewards, next_states, terminates, next_masks = zip(*[self.memory[i] for i in indies])
+        states = torch.tensor(np.stack(states), dtype=torch.float32, device=self.device)
+        next_states = torch.tensor(np.stack(next_states), dtype=torch.float32, device=self.device)
+        actions = torch.tensor(np.array(actions), dtype=torch.long, device=self.device)
+        rewards = torch.tensor(np.array(rewards), dtype=torch.float32, device=self.device)
+        next_masks = torch.tensor(np.stack(next_masks), device=self.device)
+        bootstrap = ~torch.tensor(np.array(terminates), device=self.device) & next_masks.any(dim=1)
+
+        with torch.no_grad():
+            # Max only over actions valid in next_state; invalid outputs are never trained
+            next_q = self.target_model(next_states).masked_fill(~next_masks, float('-inf')).max(dim=1).values
+            targets = rewards + self.gamma * torch.where(bootstrap, next_q, torch.zeros_like(next_q))
+        q = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        loss = nn.MSELoss()(q, targets)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        return loss.item()
     
     def calcualte_batch_size(self, epsilon, batch_size):
         res = 0 
@@ -145,16 +141,24 @@ class DQNAgent:
         for item in need_remove:
             del self.tabu[item]
     
-    def set_valid_action(self, action_values):
-        for action in range(self.state_size):
-            if action in self.env.selected_items or action in self.tabu:
-                action_values[action] = float('-inf')
+    def valid_action_mask(self):
+        """
+        Actions feasible in the env's current state. Ignores tabu, which is not part of the
+        observation, and never allows terminate.
+
+        :return: np.array[bool] of size action_size
+        """
+        mask = np.zeros(self.action_size, dtype=bool)
+        for item in range(self.state_size):
+            if item in self.env.selected_items:
+                mask[item + self.state_size] = True
             else:
-                marginal_weight = sum(self.env.element_weights[elem] for elem in self.env.item_subsets[action] if self.env.element_counts[elem] == 0)
-                if self.env.total_weight + marginal_weight > self.env.capacity:
-                    action_values[action] = float('-inf')
+                marginal_weight = sum(self.env.element_weights[elem] for elem in self.env.item_subsets[item] if self.env.element_counts[elem] == 0)
+                mask[item] = self.env.total_weight + marginal_weight <= self.env.capacity
+        return mask
 
-        for action in range(self.state_size, 2 * self.state_size):
-            if action - self.state_size not in self.env.selected_items or action in self.tabu:
-                action_values[action] = float('-inf')
-
+    def set_valid_action(self, action_values):
+        mask = self.valid_action_mask()
+        for action in self.tabu:
+            mask[action] = False
+        action_values[~torch.as_tensor(mask, device=action_values.device)] = float('-inf')

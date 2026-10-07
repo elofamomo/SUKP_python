@@ -13,7 +13,7 @@ agent_param:
   noise_decay: 0.98
   epsilon: 1.0
   epsilon_decay: 0.99
-  gamma: 1.0
+  gamma: 0.99
 load_checkpoint: False
 save_checkpoint: True
 episode: 1000

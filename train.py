@@ -59,7 +59,7 @@ def main():
         for e in range(episodes):
             print(f"Start episode {e + 1}")
             suk.reset_init(idx=e)
-            state = suk.get_state()  # Assume env has reset/step
+            state = suk.get_observation()
             terminate = False
             total_reward = 0.0
             loss = 0.0

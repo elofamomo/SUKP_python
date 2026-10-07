@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.10)
+project(sukp_e2ls CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+add_executable(e2ls e2ls/main.cpp)
+target_include_directories(e2ls PRIVATE e2ls)

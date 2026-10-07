@@ -56,7 +56,7 @@ def run():
     try:
         for solut in range(num_of_solut):
             suk.reset_init(idx=solut)
-            state = suk.get_state()
+            state = suk.get_observation()
             current_best_prof = suk.get_profit()
             current_best_sol = suk.get_state()
             print(f"Solution {solut}, After GA: {current_best_prof}", end = ' -- ')

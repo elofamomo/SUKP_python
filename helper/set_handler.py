@@ -37,6 +37,8 @@ class SetUnionHandler:
         self.total_profit = 0.0
         self.total_weight = 0.0
         self.terminate_reward = 0.0
+        self.best_profit = 0.0  # best profit seen in the current episode
+        self.reward_scale = float(np.mean(self.item_profits))
 
     def add_item(self, item_idx):
         """
@@ -150,7 +152,8 @@ class SetUnionHandler:
             idx = np.random.randint(0, len(self.init_sol))
         selected_solution = self.init_sol[idx]
         self.set_state(selected_solution)
-    
+        self.best_profit = self.get_profit()
+
     def set_init_sol(self, init_sol):
         if len(init_sol) > 0:
             self.init_sol = init_sol
@@ -168,38 +171,43 @@ class SetUnionHandler:
 
     def get_state(self):
         return np.array([1.0 if i in self.selected_items else 0.0 for i in range(self.m)], dtype=float)
-    
+
+    def get_observation(self):
+        """
+        Agent input: the binary solution plus the normalized gap to the episode's best profit.
+        The gap makes the best-so-far reward Markov in the observation.
+
+        :return: np.array of size m + 1
+        """
+        gap = (self.best_profit - self.get_profit()) / self.reward_scale
+        return np.append(self.get_state(), gap)
+
     def step(self, action):
         if action < 0 or action > 2 * self.m:
             raise ValueError(f"Action must be between 0 and {2 * self.m}. Current action is {action}")
 
         terminate = False
         reward = 0.0
-        current_profit = self.get_profit()
         success = False
-        
-        if action == 2 * self.m:		    	 	  
+
+        if action == 2 * self.m:
             reward = self.terminate_reward
             terminate = True
         else:
-            fullness = self.total_weight / self.capacity
             if 0 <= action and action < self.m:
-                added = self.add_item(action)
-                if added:
-                    reward = (self.get_profit() - current_profit) * np.exp((fullness - 1) / self.sigma)
-                    success = True
-                else:
-                    reward = -self.penalty
+                success = self.add_item(action)
             elif action >= self.m and action < 2 * self.m:
-                removed = self.remove_item(action - self.m)
-                if removed:
-                    fullness = self.total_weight / self.capacity
-                    reward = (self.get_profit() - current_profit) * np.exp((fullness - 1) / self.sigma)
-                    success = True
-                else:
-                    reward = -self.penalty
-        
-        new_state = self.get_state()
+                success = self.remove_item(action - self.m)
+            if success:
+                # Reward only improvements over the episode's best profit: the episode return
+                # telescopes to (best_T - best_0), removals are free, and no move cycle earns reward.
+                new_profit = self.get_profit()
+                reward = max(0.0, new_profit - self.best_profit) / self.reward_scale
+                self.best_profit = max(self.best_profit, new_profit)
+            else:
+                reward = -self.penalty
+
+        new_state = self.get_observation()
         return new_state, reward, terminate, success
     
     def iterated_local_search(self, solution_list, current_solution_list, current_profit_list, max_iter=500, tabu_size=20, perturbation_strength=3):
