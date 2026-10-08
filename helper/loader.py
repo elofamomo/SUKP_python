@@ -17,8 +17,8 @@ class SUKPLoader:
         self.element_weights = None
         self.file_name = None
         self.item_subsets = None  # List of lists: for each item, list of element indices it covers
-        file_path = self._load_sukp_config(self.yaml_path)
-        self._load(file_path)
+        self.file_path = self._load_sukp_config(self.yaml_path)
+        self._load(self.file_path)
     
     def _load(self, file_path):
         if not os.path.exists(file_path):
@@ -168,3 +168,6 @@ class SUKPLoader:
         }
     def get_filename(self):
         return self.file_name
+
+    def get_filepath(self):
+        return self.file_path

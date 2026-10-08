@@ -7,3 +7,4 @@ matplotlib==3.10.9
 PyYAML==6.0.3
 tensorboard==2.20.0
 mealpy==3.0.3
+pybind11

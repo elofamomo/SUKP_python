@@ -13,7 +13,11 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install torch-geometric
 
 # Install remaining dependencies
-pip install numpy==1.26.0 matplotlib==3.10.9 PyYAML==6.0.3 tensorboard==2.20.0 mealpy==3.0.3
+pip install numpy==1.26.0 matplotlib==3.10.9 PyYAML==6.0.3 tensorboard==2.20.0 mealpy==3.0.3 pybind11
+
+# Build the C++ solver and its Python module sukp_cpp (written to the project root)
+cmake -S . -B build -DPython_EXECUTABLE="$(which python)"
+cmake --build build -j
 
 echo ""
 echo "=== Setup complete. Verifying CUDA ==="
