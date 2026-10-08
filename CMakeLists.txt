@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(sukp_e2ls CXX)
+project(sukp_solver CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,5 +9,5 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-add_executable(e2ls cpp_solver/main.cpp)
-target_include_directories(e2ls PRIVATE cpp_solver)
+add_executable(sukp_solver cpp_solver/main.cpp)
+target_include_directories(sukp_solver PRIVATE cpp_solver)

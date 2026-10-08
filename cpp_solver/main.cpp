@@ -31,14 +31,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    E2LSParams params;
+    SUKPParams params;
     params.time_budget_sec = time_budget;
     params.rnum = rnum;
     params.anum = anum;
     params.seed = seed;
 
-    E2LSSolver solver(inst, params);
-    E2LSResult result = solver.run();
+    SUKPSolver solver(inst, params);
+    SUKPResult result = solver.run();
 
     long long weight = 0;
     {

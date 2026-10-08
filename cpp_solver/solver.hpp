@@ -88,16 +88,16 @@ public:
     }
 };
 
-struct E2LSParams {
+struct SUKPParams {
     int rnum = 2;                          // # worst-ratio selected items considered for removal
-    int anum = 2;                          // # best-ratio candidates branched on per ADD* node
-    int construct_t = -1;                  // Random_Greedy sample size; -1 => sqrt(max(m,n))
-    long long add_star_node_budget = 4000;  // caps ADD* branching cost per removal candidate
+    int anum = 2;                          // # best-ratio candidates branched on per add-back node
+    int construct_t = -1;                  // random_greedy_construct sample size; -1 => sqrt(max(m,n))
+    long long add_back_node_budget = 4000;  // caps add-back branching cost per removal candidate
     double time_budget_sec = 30.0;
     uint64_t seed = 1;
 };
 
-struct E2LSResult {
+struct SUKPResult {
     std::vector<uint8_t> best_selected;
     long long best_profit = -1;
     double elapsed_sec = 0;
@@ -105,18 +105,9 @@ struct E2LSResult {
     long long restarts = 0;
 };
 
-// C++ port of the E2LS-style local search (Wei & Hao-family "restricted
-// candidate + recursive multi-item add-back" local search for SUKP), per
-// the algorithm summary distilled from arXiv:2207.00749. The exact
-// backtracking/threading semantics of the paper's ADD* were ambiguous in
-// the extracted pseudocode, so this implementation favors a clean, provably
-// self-undoing recursive search with the same spirit: restrict which items
-// are ever considered (top-rnum worst-ratio for removal, top-anum best-ratio
-// for addition), always take free (zero-marginal-weight) items unconditionally,
-// and track the best feasible snapshot seen anywhere in the search tree.
-class E2LSSolver {
+class SUKPSolver {
 public:
-    E2LSSolver(const Instance& inst, E2LSParams params)
+    SUKPSolver(const Instance& inst, SUKPParams params)
         : inst_(inst), params_(params), state_(inst, params.seed), rng_(params.seed) {
         if (params_.construct_t <= 0) {
             int mx = std::max(inst_.m, inst_.n);
@@ -124,10 +115,10 @@ public:
         }
     }
 
-    E2LSResult run() {
+    SUKPResult run() {
         using clock = std::chrono::steady_clock;
         auto t0 = clock::now();
-        E2LSResult result;
+        SUKPResult result;
 
         random_greedy_construct();
         mark_visited();
@@ -153,7 +144,7 @@ public:
 
 private:
     const Instance& inst_;
-    E2LSParams params_;
+    SUKPParams params_;
     SUKPState state_;
     std::mt19937_64 rng_;
     std::unordered_set<uint64_t> visited_;
@@ -208,7 +199,7 @@ private:
     // it makes before returning (invariant: state_ is unchanged across a call),
     // while recording the best feasible snapshot seen anywhere in the subtree
     // into local_best_profit/local_best_selected.
-    void add_star(long long& node_budget, long long& local_best_profit,
+    void add_back_search(long long& node_budget, long long& local_best_profit,
                   std::vector<uint8_t>& local_best_selected) {
         std::vector<int> applied_free;
         add_all_free_items(applied_free);
@@ -238,7 +229,7 @@ private:
                     local_best_profit = state_.total_profit;
                     local_best_selected = state_.selected;
                 }
-                add_star(node_budget, local_best_profit, local_best_selected);
+                add_back_search(node_budget, local_best_profit, local_best_selected);
                 state_.remove_item(cand);
             }
         }
@@ -294,10 +285,10 @@ private:
             if (state_.selected[i]) in_sol.push_back(i);
 
         if (in_sol.empty()) {
-            long long budget = params_.add_star_node_budget;
+            long long budget = params_.add_back_node_budget;
             long long local_best_profit = state_.total_profit;
             std::vector<uint8_t> local_best_selected = state_.selected;
-            add_star(budget, local_best_profit, local_best_selected);
+            add_back_search(budget, local_best_profit, local_best_selected);
             if (local_best_profit > state_.total_profit) {
                 apply_selection(local_best_selected);
                 mark_visited();
@@ -319,10 +310,10 @@ private:
             int victim = in_sol[r];
             state_.remove_item(victim);
 
-            long long budget = params_.add_star_node_budget;
+            long long budget = params_.add_back_node_budget;
             long long local_best_profit = state_.total_profit;
             std::vector<uint8_t> local_best_selected = state_.selected;
-            add_star(budget, local_best_profit, local_best_selected);
+            add_back_search(budget, local_best_profit, local_best_selected);
 
             bool tabu = is_tabu(hash_of(local_best_selected));
             bool aspiration = local_best_profit > best_profit_ever_;
