@@ -9,5 +9,5 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-add_executable(e2ls e2ls/main.cpp)
-target_include_directories(e2ls PRIVATE e2ls)
+add_executable(e2ls cpp_solver/main.cpp)
+target_include_directories(e2ls PRIVATE cpp_solver)
