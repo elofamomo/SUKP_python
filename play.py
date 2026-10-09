@@ -1,8 +1,9 @@
 """
 Run the C++ solver (cpp_solver/, through the sukp_cpp module) on the instance set in helper/config.yaml.
 
-ADD* ranks add-back candidates either by the paper's value-weight ratio (--ranker ratio) or by the
-trained ranker checkpoint (--ranker network, trained with train_ranker.py).
+ADD* ranks add-back candidates by the paper's value-weight ratio (--ranker ratio), by Q(s, add i) of
+the DQN pretrained on this instance (--ranker dqn, train.py), or by the imitation-trained ranker
+(--ranker network, train_ranker.py).
 
 Build the module first (from the project root, inside the venv):
     cmake -S . -B build -DPython_EXECUTABLE=$(which python) && cmake --build build -j
@@ -17,13 +18,15 @@ from helper.set_handler import SetUnionHandler
 DEFAULT_CHECKPOINT = 'checkpoints/addback_ranker.pt'
 
 
-def play(yaml_path="helper/config.yaml", ranker="ratio", checkpoint_path=DEFAULT_CHECKPOINT,
+def play(yaml_path="helper/config.yaml", ranker="ratio", checkpoint_path=None,
          time_budget=30.0, max_iterations=-1, rnum=2, anum=2, seed=1, device=None):
     """
     Solves the configured instance with the C++ local search.
 
-    :param ranker: str, 'ratio' (paper ADD*) or 'network' (ADD* ranked by the trained ranker)
-    :param checkpoint_path: str, ranker checkpoint, used when ranker == 'network'
+    :param ranker: str, 'ratio' (paper ADD*), 'dqn' (ADD* ranked by the pretrained DQN) or
+        'network' (ADD* ranked by the imitation-trained ranker)
+    :param checkpoint_path: str, network checkpoint; defaults to checkpoints/<instance>.pth for 'dqn'
+        and checkpoints/addback_ranker.pt for 'network'
     :param time_budget: float, seconds; <= 0 for no time limit
     :param max_iterations: int, local search steps; -1 for no limit
     :return: tuple (best_solution: np.array, best_profit: float, total_weight: float)
@@ -32,17 +35,23 @@ def play(yaml_path="helper/config.yaml", ranker="ratio", checkpoint_path=DEFAULT
     inst = sukp_cpp.load_instance(loader.get_filepath())
 
     scorer = None
-    if ranker == 'network':
+    if ranker in ('dqn', 'network'):
         import torch
-        from networks.ranker import InstanceGraph, NetworkScorer, load_ranker
+        from networks.ranker import DQNScorer, InstanceGraph, NetworkScorer, load_dqn, load_ranker
+        trainer = 'train.py' if ranker == 'dqn' else 'train_ranker.py'
+        if checkpoint_path is None:
+            checkpoint_path = f'checkpoints/{loader.get_filename()}.pth' if ranker == 'dqn' else DEFAULT_CHECKPOINT
         if not os.path.exists(checkpoint_path):
-            raise FileNotFoundError(f"No trained ranker at {checkpoint_path}; train one with train_ranker.py")
+            raise FileNotFoundError(f"No trained {ranker} model at {checkpoint_path}; train one with {trainer}")
         device = torch.device(device or ('cuda' if torch.cuda.is_available() else 'cpu'))
-        model = load_ranker(checkpoint_path, device)
-        scorer = NetworkScorer(model, InstanceGraph.from_instance(inst, device), device)
+        if ranker == 'dqn':
+            scorer = DQNScorer(load_dqn(checkpoint_path, loader.get_data(), device), device)
+        else:
+            model = load_ranker(checkpoint_path, device)
+            scorer = NetworkScorer(model, InstanceGraph.from_instance(inst, device), device)
         print(f"Ranking add-back candidates with {checkpoint_path} on {device}")
     elif ranker != 'ratio':
-        raise ValueError(f"ranker must be 'ratio' or 'network', got {ranker}")
+        raise ValueError(f"ranker must be 'ratio', 'dqn' or 'network', got {ranker}")
 
     params = sukp_cpp.SolverParams()
     params.time_budget_sec = time_budget
@@ -73,8 +82,9 @@ def play(yaml_path="helper/config.yaml", ranker="ratio", checkpoint_path=DEFAULT
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Solve the instance in --config with the C++ local search")
     parser.add_argument('--config', default='helper/config.yaml')
-    parser.add_argument('--ranker', choices=['ratio', 'network'], default='ratio')
-    parser.add_argument('--checkpoint', default=DEFAULT_CHECKPOINT)
+    parser.add_argument('--ranker', choices=['ratio', 'dqn', 'network'], default='ratio')
+    parser.add_argument('--checkpoint', default=None,
+                        help=f'default: checkpoints/<instance>.pth (dqn), {DEFAULT_CHECKPOINT} (network)')
     parser.add_argument('--time', type=float, default=30.0, help='seconds; <= 0 for no limit')
     parser.add_argument('--iterations', type=int, default=-1, help='local search steps; -1 for no limit')
     parser.add_argument('--rnum', type=int, default=2)

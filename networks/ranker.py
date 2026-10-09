@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from networks.gnn import mlp, MessagePassingLayer
+from networks.gnn import mlp, MessagePassingLayer, BipartiteQNetwork
 
 
 class InstanceGraph:
@@ -141,6 +141,38 @@ class NetworkScorer:
         scores = self.model(x, self.graph)
         idx = torch.as_tensor(candidates, dtype=torch.long, device=self.device)
         return scores[idx].double().cpu().numpy()
+
+
+class DQNScorer:
+    """
+    The scorer passed to sukp_cpp.solve for --ranker dqn: ranks add-back candidates by Q(s, add i)
+    of a DQN pretrained on the instance (BipartiteQNetwork, trained by train.py).
+    """
+    def __init__(self, model, device):
+        self.model = model.eval()
+        self.device = device
+
+    @torch.no_grad()
+    def __call__(self, selected, candidates):
+        # Observation = solution bits + gap to the episode's best (SetUnionHandler.get_observation).
+        # ADD* only adds items, so every node is scored as if it were at the best so far (gap 0).
+        obs = torch.zeros(self.model.m + 1, device=self.device)
+        obs[:self.model.m] = torch.as_tensor(selected, dtype=torch.float32, device=self.device)
+        q = self.model(obs)  # [add item i | remove item i | terminate]
+        idx = torch.as_tensor(candidates, dtype=torch.long, device=self.device)
+        return q[idx].double().cpu().numpy()
+
+
+def load_dqn(path, data, device):
+    """
+    :param path: str, checkpoint saved by train.py
+    :param data: dict from SUKPLoader.get_data() for the instance the DQN was trained on
+    """
+    checkpoint = torch.load(path, map_location=device, weights_only=False)
+    model = BipartiteQNetwork(data['item_profits'], data['element_weights'],
+                              data['item_subsets'], data['capacity']).to(device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    return model.eval()
 
 
 def save_ranker(model, path, **extra):
