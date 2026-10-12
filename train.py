@@ -5,16 +5,16 @@ from helper.generate_initial import ga_solver, hamming_distance
 from solver.softmax_agent import DQNAgent
 from helper.plotter import Plotter
 from torch.utils.tensorboard import SummaryWriter
+import argparse
 import torch
 import numpy as np
 
 
-def main():
+def main(yaml_path="helper/config.yaml"):
     if torch.cuda.is_available():
         torch.set_default_device('cuda')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"using: {device}")
-    yaml_path = "helper/config.yaml"
     loader = SUKPLoader(yaml_path)
     data = loader.get_data()
     param = loader.get_param()
@@ -139,4 +139,7 @@ def save_checkpoint(best_result, file_name, best_sol, agent):
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Train the DQN on the instance in --config")
+    parser.add_argument('--config', default='helper/config.yaml')
+    args = parser.parse_args()
+    main(args.config)

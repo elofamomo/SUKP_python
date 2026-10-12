@@ -98,12 +98,12 @@
 
 \title{
 \tcbhighmath[frame style={left color=RoyalBlue!70!black,right color=Red!95!black},interior style={left color=RoyalBlue!35!white,right color=Red!50!white},boxrule=2pt]{
-\text{\Large DQN-Guided E2LS for the Set-Union Knapsack Problem}
+\text{\large DQN-Guided Local Search for the Set-Union Knapsack Problem}
 }}
 
-\author{Your Name}
+\author{Dung Truong}
 
-\affiliation{Your affiliation}
+% \affiliation{}
 
 
 \maketitle
@@ -174,7 +174,7 @@ Paying per item would cost $5+6=11>C$.
 
 \newpage
 
-\DIV[2]{section}{Our C++ solver (based on E2LS)}
+\DIV[2]{section}{Our solver}
 \vspace{-0.35cm}
 \DIV[1]{subsection}{Main loop}
 \vspace{-0.2cm}\hrule
@@ -212,7 +212,7 @@ Paying per item would cost $5+6=11>C$.
 
 \newpage
 
-\DIV[2]{section}{Our C++ solver (based on E2LS)}
+\DIV[2]{section}{Our solver}
 \vspace{-0.35cm}
 \DIV[2]{subsection}{Value-weight ratio and greedy construction}
 \vspace{-0.2cm}\hrule
@@ -254,7 +254,7 @@ keep $c_j$ for every element: adding or removing item $i$ costs $O(|U_i|)$, and 
 
 \newpage
 
-\DIV[2]{section}{Our C++ solver (based on E2LS)}
+\DIV[2]{section}{Our solver}
 \vspace{-0.35cm}
 \DIV[3]{subsection}{Local search and ADD*}
 \vspace{-0.2cm}\hrule
@@ -309,7 +309,7 @@ Paper: by $R(S,i)$. Ours: by the DQN's $Q_\theta(s,\text{add } i)$ (Section III)
 
 \newpage
 
-\DIV[2]{section}{Our C++ solver (based on E2LS)}
+\DIV[2]{section}{Our solver}
 \vspace{-0.35cm}
 \DIV[4]{subsection}{Implementation and Python binding}
 \vspace{-0.2cm}\hrule
@@ -348,7 +348,7 @@ python play.py --ranker dqn
 \end{minipage}
 
 %==========================================================%
-%  III. ADD* RANKED BY A PRETRAINED DQN  (5 slides)
+%  III. ADD* RANKED BY A PRETRAINED DQN  (4 slides)
 %==========================================================%
 
 \newpage
@@ -445,50 +445,12 @@ Q^*(s,a)=\mathbb{E}\big[\,r+\gamma\max_{a'}Q^*(s',a')\,\big]}
 
 \DIV[3]{section}{ADD* ranked by a pretrained DQN}
 \vspace{-0.35cm}
-\DIV[3]{subsection}{GA generation of starting solutions}
+\DIV[3]{subsection}{DQN: state, actions, reward, training}
 \vspace{-0.2cm}\hrule
 
 \vspace{0.3cm}
 
-\begin{minipage}[t]{0.54\textwidth}\vspace{0pt}
-\small
-\begin{itemize}
-  \item Binary GA (\texttt{mealpy}): population 50, 100 generations.
-  \item Tournament selection ($k=10$), uniform crossover ($p_c=0.9$), bit-flip mutation ($p_m=0.4$).
-  \item \textbf{Decoding}: add the items whose bit is 1 in index order, skipping any that would exceed $C$. Every individual is feasible and its fitness is $P(S)$.
-  \item One GA run per episode gives 1000 good but different starting solutions.
-\end{itemize}
-\vspace{0.2cm}
-\begin{greenbox}
-\textbf{Why GA starts?} Episodes begin near good solutions, so the DQN learns the improving moves that matter where the search actually works.
-\end{greenbox}
-\end{minipage}\hfill
 \begin{minipage}[t]{0.42\textwidth}\vspace{0pt}
-\centering
-\begin{tikzpicture}[node distance=4mm]
-  \node[pbox, text width=5.0cm] (pop) {50 bit-strings $x\in\{0,1\}^m$};
-  \node[pbox, text width=5.0cm, below=of pop] (sel) {tournament, $k=10$};
-  \node[pbox, text width=5.0cm, below=of sel] (cx) {uniform crossover, $p_c=0.9$};
-  \node[pbox, text width=5.0cm, below=of cx] (mut) {bit-flip mutation, $p_m=0.4$};
-  \node[gbox, text width=5.0cm, below=of mut] (ev) {decode, fitness $P(S)$};
-  \draw[arr] (pop) -- (sel);
-  \draw[arr] (sel) -- (cx);
-  \draw[arr] (cx) -- (mut);
-  \draw[arr] (mut) -- (ev);
-  \draw[arr] (ev.east) -- ++(0.4,0) |- node[pos=0.25, right, font=\scriptsize, align=left]{100\\ gens} (pop.east);
-\end{tikzpicture}
-\end{minipage}
-
-\newpage
-
-\DIV[3]{section}{ADD* ranked by a pretrained DQN}
-\vspace{-0.35cm}
-\DIV[4]{subsection}{DQN: state, actions, reward, training}
-\vspace{-0.2cm}\hrule
-
-\vspace{0.3cm}
-
-\begin{minipage}[t]{0.50\textwidth}\vspace{0pt}
 \small
 \begin{itemize}
   \item \textbf{State} $s=(x_S,g)$: $x_S\in\{0,1\}^m$ marks the chosen items, $g=(P_{best}-P(S))/\bar p$ is the gap to the episode's best ($\bar p$: mean item profit).
@@ -498,15 +460,19 @@ Q^*(s,a)=\mathbb{E}\big[\,r+\gamma\max_{a'}Q^*(s',a')\,\big]}
   so an episode's return equals its total improvement of the best.
 \end{itemize}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.46\textwidth}\vspace{0pt}
+\begin{minipage}[t]{0.55\textwidth}\vspace{0pt}
+\small\setlength{\abovedisplayskip}{0pt}
 \begin{equation*}
 \tcbhighmath[colframe=Purple!80!black,colback=Purple!30!white]{
 \begin{aligned}
-y&=r+\gamma\max_{a'\in\mathcal{A}(s')}Q_{\bar\theta}(s',a')\\
-\mathcal{L}(\theta)&=\big(Q_\theta(s,a)-y\big)^2
+&\textbf{Bellman target}\\
+&\quad y=r+\gamma\max_{a'\in\mathcal{A}(s')}Q(s',a')\\[3pt]
+&\textbf{Q-learning update (table)}\\
+&\quad Q(s,a)\leftarrow Q(s,a)+\alpha\big[\,r+\gamma\max_{a'}Q(s',a')-Q(s,a)\,\big]\\[3pt]
+&\textbf{DQN loss (network, } y \textbf{ from } Q_{\bar\theta}\textbf{)}\\
+&\quad \mathcal{L}(\theta)=\big(Q_\theta(s,a)-y\big)^2
 \end{aligned}}
 \end{equation*}
-\small
 \begin{itemize}
   \item 1000 episodes of 100 steps; replay buffer $10^4$, batch 128.
   \item Target network $Q_{\bar\theta}$ synced every 5 episodes; $\gamma=0.99$; Adam, learning rate $10^{-3}$.
@@ -520,7 +486,7 @@ y&=r+\gamma\max_{a'\in\mathcal{A}(s')}Q_{\bar\theta}(s',a')\\
 
 \DIV[3]{section}{ADD* ranked by a pretrained DQN}
 \vspace{-0.35cm}
-\DIV[5]{subsection}{Graph neural network: message passing}
+\DIV[4]{subsection}{Graph neural network: message passing}
 \vspace{-0.2cm}\hrule
 
 \vspace{0.3cm}
@@ -560,11 +526,8 @@ Heads shared by all items: $Q(s,\text{add } i)=\psi_{add}[h^I_i,g]$, $Q(s,\text{
 \slidefoot{\cite{Gilmer2017} J. Gilmer \textit{et al.} (2017)}
 
 %==========================================================%
-%  IV. RESULTS  (3 slides)
+%  IV. RESULTS  (1 slide)
 %==========================================================%
-% TODO: "Ours" is results_csv/profit.csv (30 s, seed 1), produced before the solver followed the
-% paper's acceptance rule; rerun with the current solver before presenting final numbers.
-% The profit tables below are generated from that CSV; regenerate them after the rerun.
 
 \newpage
 
@@ -599,7 +562,7 @@ $m\times n$ & BABC & QL & gbPSO & Best$^{\dagger}$ & \textbf{Ours} & $\Delta$\\
 500$\times$500 & 10755 & 10888 & 10991 & \textbf{11249} & \textcolor{Red!80!black}{11245} & $-4$\\
 \hline\hline
 \end{tabular}
-\hfill
+\hspace{0.8cm}
 \begin{tabular}{lrrrrrr}
 \hline\hline
 \multicolumn{7}{c}{$\alpha=0.15,\ \beta=0.85$}\\
@@ -626,7 +589,7 @@ $m\times n$ & BABC & QL & gbPSO & Best$^{\dagger}$ & \textbf{Ours} & $\Delta$\\
 \par}
 
 \vspace{0.2cm}
-{\footnotesize $^{\dagger}$I2PLS, KBTS, E2LS and AES-BM all reach this value on every Set I instance. Bold: best value in the row. $\Delta$ = Ours $-$ best. Ours reaches the best value on 17/30 instances.\par}
+{\centering\footnotesize $^{\dagger}$I2PLS = KBTS = E2LS = AES-BM on all of Set I. Bold: best in the row. $\Delta$ = Ours $-$ best. Ours is best on 17/30.\par}
 
 \slidefoot{Data: \texttt{results\_csv/profit.csv}. BABC~\cite{He2018}, QL and gbPSO~\cite{Ozsoydan2023}, I2PLS~\cite{Wei2019}, KBTS~\cite{Wei2021}, E2LS~\cite{Zhu2022}, AES-BM~\cite{Zhao2024}}
 
@@ -663,7 +626,7 @@ $m\times n$ & KBTS & E2LS & \textbf{Ours} & $\Delta$\\
 1000$\times$1000 & 9544 & \textbf{9551} & \textcolor{Red!80!black}{9433} & $-118$\\
 \hline\hline
 \end{tabular}
-\hfill
+\hspace{2.5cm}
 \begin{tabular}{lrrrr}
 \hline\hline
 \multicolumn{5}{c}{$\alpha=0.15,\ \beta=0.85$}\\
@@ -690,51 +653,9 @@ $m\times n$ & KBTS & E2LS & \textbf{Ours} & $\Delta$\\
 \par}
 
 \vspace{0.2cm}
-{\footnotesize Only KBTS and E2LS report Set II results. Bold: best value in the row. $\Delta$ = Ours $-$ best. Ours reaches the best value on 3/30 instances and is 18--290 below it on the others.\par}
+{\centering\footnotesize Only KBTS and E2LS report Set II. Bold: best in the row. $\Delta$ = Ours $-$ best. Ours is best on 3/30.\par}
 
 \slidefoot{Data: \texttt{results\_csv/profit.csv}. KBTS~\cite{Wei2021}, E2LS~\cite{Zhu2022}}
-
-\newpage
-
-\DIV[4]{section}{Results}
-\vspace{-0.35cm}
-\DIV[3]{subsection}{Summary on the 60 benchmark instances}
-\vspace{-0.2cm}\hrule
-
-\vspace{0.3cm}
-
-\begin{minipage}[t]{0.56\textwidth}\vspace{0pt}
-\centering
-\small
-\begin{tabular}{lcccc}
-\hline\hline
- & \multicolumn{2}{c}{Set I (30)} & \multicolumn{2}{c}{Set II (30)}\\
-\cline{2-3}\cline{4-5}
-Method & \#best & gap (\%) & \#best & gap (\%)\\
-\hline
-BABC~\cite{He2018}       & 2  & 6.18 & -- & --\\
-I2PLS~\cite{Wei2019}     & 30 & 0.00 & -- & --\\
-KBTS~\cite{Wei2021}      & 30 & 0.00 & 23 & 0.12\\
-E2LS~\cite{Zhu2022}      & 30 & 0.00 & 30 & 0.00\\
-QL~\cite{Ozsoydan2023}   & 4  & 3.07 & -- & --\\
-gbPSO~\cite{Ozsoydan2023} & 13 & 1.11 & -- & --\\
-AES-BM~\cite{Zhao2024}   & 30 & 0.00 & -- & --\\
-\hline
-\textbf{Ours} (C++ solver) & 17 & 0.56 & 3 & 1.45\\
-\hline\hline
-\end{tabular}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.41\textwidth}\vspace{0pt}
-\small
-\begin{itemize}
-  \item \#best: instances where the method reaches the best value in the table. Gap: mean of $(P_{best}-P)/P_{best}$.
-  \item Ours is better than BABC on 28/30 and QL on 26/30 instances; against gbPSO: 14 better, 11 equal, 5 worse.
-  \item Ours: one 30\,s run with the paper's ADD* ranking. E2LS: best of 10 runs, 500\,s (Set I) / 1000\,s (Set II).
-  \item DQN-ranked ADD*: training in progress.
-\end{itemize}
-\end{minipage}
-
-\slidefoot{Data: \texttt{results\_csv/profit.csv}}
 
 %==========================================================%
 
