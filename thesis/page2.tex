@@ -1,0 +1,52 @@
+\begin{titlepage}
+    %doubleshot titlepage's border
+    \begin{tikzpicture}[overlay,remember picture]
+        \draw [line width=0.8mm]
+            ($ (current page.north west) + (2.9cm,-2.4cm) $)
+            rectangle
+            ($ (current page.south east) + (-1.9cm,2.9cm) $);
+        \draw [line width=0.2mm]
+            ($ (current page.north west) + (3cm,-2.5cm) $)
+            rectangle
+            ($ (current page.south east) + (-2cm,3cm) $);
+    \end{tikzpicture}
+
+	\begin{center}
+		{\fontsize{12}{1.3}\selectfont \textbf{ĐẠI HỌC QUỐC GIA HÀ NỘI\\TRƯỜNG ĐẠI HỌC CÔNG NGHỆ}}
+
+		\vspace{2cm}
+
+		{\fontsize{14}{1.5}\selectfont \textbf{\tacgiaHoa}}
+
+		\vspace{1.5cm}
+
+		{\fontsize{18}{24}\selectfont \textbf{\tendetai}}
+	\end{center}
+
+        \vspace{1.5cm}
+
+        {\fontsize{13}{20}\selectfont
+        \hspace*{2.5cm}Ngành: \nganh\\
+        \hspace*{2.5cm}Chuyên ngành: \chuyennganh\\
+        \hspace*{2.5cm}Mã số: \maso
+        }
+
+        \vspace{1.5cm}
+
+        \begin{center}
+            {\fontsize{14}{1.5}\selectfont \textbf{LUẬN VĂN THẠC SĨ \nganhHoa}}
+        \end{center}
+
+        \vspace{1cm}
+
+        {\fontsize{13}{20}\selectfont
+        \hspace*{2.5cm}\textbf{CÁN BỘ HƯỚNG DẪN KHOA HỌC:}\\
+        \hspace*{2.5cm}\gvhd
+        }
+
+	\vfill
+	\begin{center}
+		{\fontsize{12}{1.3}\selectfont \textbf{HÀ NỘI -- \namhoc}}
+	\end{center}
+
+\end{titlepage}

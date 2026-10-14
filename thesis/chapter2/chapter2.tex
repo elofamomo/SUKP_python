@@ -1,0 +1,146 @@
+\mychapter{2}{Chương 2. Cơ sở lý thuyết và các nghiên cứu liên quan}\label{ch:chap2}
+
+Chương này trình bày các kiến thức nền tảng mà luận văn sử dụng. Mục~\ref{sec:sukp_def} định nghĩa bài toán SUKP và bộ dữ liệu chuẩn. Mục~\ref{sec:sukp_algos} tổng quan các thuật toán đã được đề xuất cho SUKP. Mục~\ref{sec:ls} trình bày tìm kiếm cục bộ và tìm kiếm tabu. Mục~\ref{sec:rl} và~\ref{sec:gnn} lần lượt trình bày học tăng cường và mạng nơ-ron đồ thị. Mục~\ref{sec:ml4co} tổng quan các hướng học máy cho tối ưu tổ hợp và xác định vị trí của luận văn.
+
+\section{Bài toán cái túi hợp tập}\label{sec:sukp_def}
+
+\subsection{Định nghĩa hình thức}
+
+Cho một tập $U=\{1,\dots,n\}$ gồm $n$ element, mỗi element $j$ có trọng số $w_j>0$, và một tập $V=\{1,\dots,m\}$ gồm $m$ item, mỗi item $i$ có lợi nhuận $p_i>0$ và tương ứng với một tập con element $U_i\subseteq U$. Quan hệ giữa item và element được cho bởi ma trận $R\in\{0,1\}^{m\times n}$, với $R_{ij}=1$ khi và chỉ khi $j\in U_i$. Cho sức chứa $C>0$. Với một tập item $S\subseteq V$, định nghĩa tổng lợi nhuận và tổng trọng số:
+\begin{equation}
+P(S)=\sum_{i\in S}p_i,
+\qquad
+W(S)=\sum_{j\in\bigcup_{i\in S}U_i} w_j .
+\label{eq:sukp_pw}
+\end{equation}
+Bài toán cái túi hợp tập là tìm
+\begin{equation}
+\max_{S\subseteq V}\ P(S)\quad\text{với ràng buộc}\quad W(S)\le C .
+\label{eq:sukp}
+\end{equation}
+Điểm khác biệt cốt lõi so với bài toán cái túi 0-1 nằm ở $W(S)$: trọng số của một element chỉ được tính \emph{một lần} dù element đó thuộc nhiều item được chọn~\cite{Goldschmidt1994,Wei2021}. Do đó chi phí của một item không cố định mà phụ thuộc vào những item đã có trong lời giải.
+
+\subsection{Mô hình quy hoạch nguyên 0-1}
+
+Đặt biến nhị phân $x_i=1$ nếu item $i$ được chọn và $y_j=1$ nếu element $j$ được phủ. SUKP có thể viết dưới dạng quy hoạch tuyến tính nguyên:
+\begin{align}
+\max\quad & \sum_{i=1}^{m}p_i x_i \label{eq:ilp_obj}\\
+\text{s.t.}\quad & \sum_{j=1}^{n}w_j y_j\le C, \label{eq:ilp_cap}\\
+& x_i\le y_j \qquad \forall i\in V,\ \forall j\in U_i, \label{eq:ilp_cover}\\
+& x_i,\,y_j\in\{0,1\}. \nonumber
+\end{align}
+Ràng buộc~\eqref{eq:ilp_cover} buộc mọi element của một item được chọn phải được phủ. Vì mục tiêu không phụ thuộc $y$ và $w_j>0$, ở lời giải tối ưu $y_j=1$ chỉ khi cần thiết, nên~\eqref{eq:ilp_cap} đúng bằng ràng buộc $W(S)\le C$. Mô hình này có $m+n$ biến và $\sum_i|U_i|$ ràng buộc phủ. Wei và Hao cho thấy bộ giải CPLEX dựa trên mô hình 0-1 chỉ chứng minh được tối ưu cho 6 instance nhỏ nhất (85 đến 100 item và element) của bộ chuẩn trong giới hạn hai giờ~\cite{Wei2019}, cho thấy phương pháp chính xác khó mở rộng.
+
+\subsection{Độ phức tạp và các bài toán liên quan}
+
+SUKP là NP-khó: khi các tập $U_i$ đôi một rời nhau, $W(S)=\sum_{i\in S}\sum_{j\in U_i}w_j$ và SUKP trở thành bài toán cái túi 0-1 với trọng lượng item $\sum_{j\in U_i}w_j$~\cite{Goldschmidt1994}. Khi mọi lợi nhuận và trọng số bằng 1, SUKP tương đương bài toán đồ thị con dày đặc nhất trên siêu đồ thị (densest $k$-subhypergraph)~\cite{Arulselvan2014}. SUKP cũng có quan hệ đối ngẫu với bài toán phủ cực đại có ngân sách (BMCP)~\cite{Khuller1999}: BMCP cực đại hóa tổng trọng số element được phủ với ràng buộc tổng chi phí item, tức là đổi vai trò của hàm mục tiêu và ràng buộc~\cite{Zhu2022}. Arulselvan~\cite{Arulselvan2014} chỉ ra rằng thuật toán tham lam của Khuller, Moss và Naor cho BMCP cũng cho một xấp xỉ hằng số với trường hợp đặc biệt của SUKP khi mỗi element thuộc không quá một số hằng tập.
+
+\subsection{Bộ dữ liệu chuẩn}\label{sec:benchmark}
+
+Các nghiên cứu về SUKP thường đánh giá trên hai bộ dữ liệu, tổng cộng 60 instance:
+\begin{itemize}
+  \item \textbf{Set I} gồm 30 instance với 85 đến 500 item và element, do He và cộng sự đề xuất~\cite{He2018}. Các instance chia làm ba loại theo quan hệ giữa $m$ và $n$: $m>n$, $m=n$ và $m<n$.
+  \item \textbf{Set II} gồm 30 instance lớn hơn với 585 đến 1000 item và element, do Wei và Hao đề xuất~\cite{Wei2021}. Lợi nhuận và trọng số được sinh ngẫu nhiên trong đoạn $[1,500]$ theo cách của He và cộng sự.
+\end{itemize}
+Mỗi instance được đặc trưng bởi bốn tham số và được đặt tên theo dạng \texttt{sukp\_$m$\_$n$\_$\alpha$\_$\beta$}, trong đó $\alpha=\sum_{i,j}R_{ij}/(mn)$ là mật độ của ma trận quan hệ và $\beta=C/\sum_j w_j$ là tỉ lệ sức chứa so với tổng trọng số element~\cite{Zhu2022}. Hai cặp tham số được dùng là $(\alpha,\beta)=(0.10,0.75)$ và $(0.15,0.85)$. Ví dụ \texttt{sukp\_85\_100\_0.10\_0.75} có 85 item, 100 element, mật độ 0.10 và sức chứa bằng 75\% tổng trọng số element.
+
+\section{Các thuật toán giải SUKP}\label{sec:sukp_algos}
+
+\subsection{Thuật toán chính xác và xấp xỉ}
+
+Goldschmidt và cộng sự đề xuất bài toán cùng với một thuật toán quy hoạch động có thời gian chạy hàm mũ~\cite{Goldschmidt1994}. Như đã nêu ở trên, giải mô hình quy hoạch nguyên bằng bộ giải thương mại chỉ khả thi với các instance rất nhỏ~\cite{Wei2019}. Các thuật toán xấp xỉ~\cite{Arulselvan2014} có đảm bảo lý thuyết nhưng chất lượng lời giải trên thực tế thấp hơn nhiều so với các heuristic~\cite{Zhu2022}. Vì vậy hướng nghiên cứu chính cho SUKP là các thuật toán heuristic và metaheuristic.
+
+\subsection{Thuật toán dựa trên quần thể}
+
+He và cộng sự~\cite{He2018} đề xuất thuật toán bầy ong nhân tạo nhị phân (BABC), cùng với bộ dữ liệu Set I. Sau đó nhiều thuật toán bầy đàn và tiến hóa khác được đề xuất. Ozsoydan và Gölcük~\cite{Ozsoydan2023} dùng Q-learning như một hệ thống khuyến nghị chọn giữa các bộ tối ưu PSO, GA và một biến thể lai di truyền--bầy hạt (gbPSO): bộ tối ưu nào đem lại cải thiện sẽ được thưởng và được gọi thường xuyên hơn. Đây là một dạng siêu heuristic (hyper-heuristic~\cite{Burke2013}) dùng học tăng cường ở mức chọn thuật toán, khác với luận văn này, nơi học máy được dùng ở mức chọn nước đi. Gần đây, Zhao và Hifi~\cite{Zhao2024} đề xuất thuật toán tiến hóa thích nghi AES-BM với tập lưu trữ các lời giải ưu tú và đa dạng. Nhìn chung, các phương pháp quần thể phức tạp hơn để thiết kế và kém hơn các phương pháp tìm kiếm cục bộ tốt nhất trên các instance lớn~\cite{Zhu2022}.
+
+\subsection{Thuật toán tìm kiếm cục bộ}
+
+Wei và Hao~\cite{Wei2019} đề xuất I2PLS, thuật toán tìm kiếm cục bộ đầu tiên cho SUKP, xen kẽ một pha tìm kiếm tabu với một pha nhiễu loạn để đến vùng chưa khám phá. KBTS~\cite{Wei2021} dùng một bộ đếm tần suất trong quá trình tìm kiếm tabu để xây dựng một lời giải ``nhân'' (kernel) gồm các item thường xuất hiện trong các lời giải tốt, rồi tìm kiếm tăng cường quanh nhân đó trước khi nhiễu loạn; công trình này cũng đề xuất bộ dữ liệu Set II. Các thuật toán này tìm láng giềng tốt nhất của lời giải hiện tại ở mỗi bước, nhưng láng giềng chứa nhiều nước đi chất lượng thấp, làm giảm hiệu quả~\cite{Zhu2022}.
+
+Zhu và Luo~\cite{Zhu2022} đề xuất E2LS (Efficient and Effective Local Search) cho cả SUKP và BMCP. Ý tưởng chính của E2LS là \emph{thu hẹp vùng tìm kiếm} bằng tỉ số giá trị trên trọng số: chỉ thử bỏ các item có tỉ số thấp nhất, và chỉ rẽ nhánh trên các ứng viên có tỉ số cao nhất khi thêm lại. Toán tử \addstar của E2LS thêm lại nhiều item theo một cây rẽ nhánh có giới hạn, cho phép xét nhiều tổ hợp item mà vẫn nhanh. E2LS dùng danh sách tabu dựa trên lời giải và khởi tạo lại bằng một thủ tục tham lam ngẫu nhiên. Theo báo cáo của tác giả, E2LS đạt hoặc vượt lời giải tốt nhất đã biết trên các bộ dữ liệu chuẩn. E2LS là thuật toán nền của luận văn và được trình bày chi tiết ở Mục~\ref{sec:e2ls}.
+
+Bảng~\ref{tab:sukp_algos} tóm tắt các thuật toán được dùng để so sánh trong Chương~\ref{ch:chap4}.
+
+\begin{table}[H]
+\centering
+\caption{Các thuật toán cho SUKP được dùng để so sánh.}
+\label{tab:sukp_algos}
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Thuật toán} & \textbf{Loại} & \textbf{Công bố} & \textbf{Bộ dữ liệu báo cáo}\\
+\midrule
+BABC~\cite{He2018} & Bầy ong nhân tạo nhị phân & 2018 & Set I\\
+I2PLS~\cite{Wei2019} & Tìm kiếm cục bộ hai pha lặp & 2019 & Set I\\
+KBTS~\cite{Wei2021} & Tìm kiếm tabu dựa trên nhân & 2021 & Set I, Set II\\
+E2LS~\cite{Zhu2022} & Tìm kiếm cục bộ với \addstar & 2022 & Set I, Set II\\
+QL, gbPSO~\cite{Ozsoydan2023} & Q-learning chọn bộ tối ưu; PSO lai GA & 2023 & Set I\\
+AES-BM~\cite{Zhao2024} & Tiến hóa thích nghi & 2024 & Set I\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Tìm kiếm cục bộ và tìm kiếm tabu}\label{sec:ls}
+
+Tìm kiếm cục bộ bắt đầu từ một lời giải và lặp lại việc di chuyển sang một lời giải \emph{láng giềng}, tức là một lời giải nhận được bằng một thay đổi nhỏ như thêm, bỏ hoặc hoán đổi một phần tử. Một quy tắc chọn nước đi (move evaluation) quyết định láng giềng nào được chọn. Nếu chỉ chấp nhận nước đi cải thiện, thuật toán sẽ dừng ở một cực trị địa phương.
+
+Tìm kiếm tabu~\cite{Glover1989} cho phép đi sang lời giải tệ hơn để thoát khỏi cực trị địa phương, và dùng một bộ nhớ ngắn hạn (danh sách tabu) để cấm quay lại các trạng thái hoặc nước đi gần đây, tránh đi vòng. Có hai dạng chính: tabu theo \emph{thuộc tính} cấm đảo ngược một nước đi trong một số bước, và tabu theo \emph{lời giải} cấm thăm lại chính các lời giải đã thăm. Tabu theo lời giải thường được cài đặt bằng hàm băm: E2LS dùng ba vector băm có độ dài $10^8$, và một lời giải bị cấm nếu cả ba vị trí băm của nó đều đã được đánh dấu~\cite{Zhu2022}. Hai khái niệm quan trọng khác của metaheuristic là \emph{tăng cường} (intensification), tức tập trung tìm quanh các vùng tốt, và \emph{đa dạng hóa} (diversification), tức đưa tìm kiếm đến vùng mới, chẳng hạn bằng khởi tạo lại.
+
+Hiệu quả của tìm kiếm cục bộ phụ thuộc lớn vào quy tắc chọn nước đi. Quy tắc này thường là một heuristic viết tay, như tỉ số giá trị trên trọng số trong E2LS. Luận văn giữ nguyên khung tìm kiếm và chỉ học lại quy tắc này.
+
+\section{Học tăng cường}\label{sec:rl}
+
+\subsection{Quá trình quyết định Markov}
+
+Học tăng cường~\cite{Sutton2018} nghiên cứu cách một tác tử (agent) học chọn hành động thông qua tương tác với môi trường. Bài toán được hình thức hóa bằng quá trình quyết định Markov (MDP) gồm tập trạng thái $\mathcal{S}$, tập hành động $\mathcal{A}(s)$ khả dụng tại trạng thái $s$, hàm chuyển trạng thái và hàm phần thưởng. Tại bước $t$, tác tử ở trạng thái $s_t$, chọn hành động $a_t$ theo chính sách $\pi(a\mid s)$, nhận phần thưởng $r_{t+1}$ và chuyển sang $s_{t+1}$. Mục tiêu là cực đại hóa \emph{return} kỳ vọng
+\begin{equation}
+G_t=\sum_{k\ge 0}\gamma^k r_{t+k+1},
+\end{equation}
+với hệ số chiết khấu $\gamma\in[0,1)$. Giá trị $1/(1-\gamma)$ có thể hiểu là tầm nhìn hiệu dụng tính theo số bước.
+
+Hàm giá trị hành động $Q^\pi(s,a)=\mathbb{E}_\pi[G_t\mid s_t=s,a_t=a]$ đo mức tốt của việc chọn $a$ tại $s$ rồi đi theo $\pi$. Hàm giá trị tối ưu $Q^*$ thỏa phương trình Bellman
+\begin{equation}
+Q^*(s,a)=\mathbb{E}\Big[\,r_{t+1}+\gamma\max_{a'\in\mathcal{A}(s_{t+1})}Q^*(s_{t+1},a')\ \Big|\ s_t=s,\ a_t=a\Big],
+\label{eq:bellman}
+\end{equation}
+và chính sách tối ưu chọn $\arg\max_a Q^*(s,a)$. Đối với người làm tối ưu, $Q^*(s,a)$ chính là \emph{giá trị còn lại} (cost-to-go) của nước đi $a$: tổng cải thiện tốt nhất có thể đạt được nếu đi $a$ rồi tiếp tục tối ưu; phương trình~\eqref{eq:bellman} là đệ quy của quy hoạch động~\cite{Bertsekas1996}.
+
+\subsection{Q-learning}
+
+Khi không gian trạng thái quá lớn để giải~\eqref{eq:bellman} trực tiếp, Q-learning~\cite{Watkins1992} ước lượng $Q^*$ từ các chuyển tiếp mẫu $(s,a,r,s')$:
+\begin{equation}
+Q(s,a)\leftarrow Q(s,a)+\alpha\Big[\,r+\gamma\max_{a'}Q(s',a')-Q(s,a)\,\Big],
+\end{equation}
+với bước học $\alpha$. Q-learning dạng bảng hội tụ về $Q^*$ khi mọi cặp trạng thái--hành động được thăm vô hạn lần và bước học giảm dần phù hợp~\cite{Watkins1992}. Để mọi hành động đều được thử, tác tử cần \emph{thăm dò}: chính sách $\varepsilon$-greedy chọn hành động ngẫu nhiên với xác suất $\varepsilon$; chính sách softmax (Boltzmann) chọn $a$ với xác suất tỉ lệ với $\exp(Q(s,a)/\tau)$, với nhiệt độ $\tau$. Thăm dò trong học tăng cường tương ứng với đa dạng hóa trong metaheuristic.
+
+\subsection{Mạng Q sâu}
+
+Với SUKP, mỗi lời giải là một vector nhị phân độ dài $m$, nên có tới $2^m$ trạng thái và không thể lưu $Q$ dưới dạng bảng. Mạng Q sâu (DQN)~\cite{Mnih2015} xấp xỉ $Q$ bằng một mạng nơ-ron $Q_\theta$ và cực tiểu hóa sai số so với đích Bellman:
+\begin{equation}
+y=r+\gamma\max_{a'}Q_{\bar\theta}(s',a'),
+\qquad
+\mathcal{L}(\theta)=\mathbb{E}_{(s,a,r,s')\sim\mathcal{D}}\big[(Q_\theta(s,a)-y)^2\big].
+\label{eq:dqn}
+\end{equation}
+Hai kỹ thuật ổn định quá trình học là: (i) \emph{bộ nhớ phát lại} (replay buffer) $\mathcal{D}$ lưu các chuyển tiếp cũ và lấy mẫu ngẫu nhiên, làm giảm tương quan giữa các mẫu liên tiếp; và (ii) \emph{mạng đích} $Q_{\bar\theta}$ là bản sao của $Q_\theta$ được cập nhật định kỳ, tránh việc đích học thay đổi liên tục. Khác với Q-learning dạng bảng, DQN không có đảm bảo hội tụ, nên hiệu quả của nó được đánh giá bằng thực nghiệm.
+
+\section{Mạng nơ-ron đồ thị}\label{sec:gnn}
+
+Mạng nơ-ron đồ thị (GNN) học biểu diễn cho các nút của một đồ thị bằng cơ chế \emph{truyền thông điệp} (message passing)~\cite{Gilmer2017}. Mỗi nút $v$ có một vector ẩn $h_v$; ở mỗi vòng, nút tổng hợp thông điệp từ các nút kề rồi cập nhật:
+\begin{equation}
+h_v^{(k+1)}=\phi\Big(h_v^{(k)},\ \operatorname*{AGG}_{u\in\mathcal{N}(v)}\psi\big(h_u^{(k)}\big)\Big),
+\end{equation}
+trong đó $\phi,\psi$ là các mạng nơ-ron (thường là MLP) và $\operatorname{AGG}$ là một phép tổng hợp bất biến với hoán vị như tổng hoặc trung bình. Sau $K$ vòng, $h_v$ chứa thông tin từ lân cận bán kính $K$ của $v$. Hai tính chất của GNN đặc biệt phù hợp với tối ưu tổ hợp. Thứ nhất, kết quả \emph{bất biến với cách đánh số} item và element. Thứ hai, các hàm $\phi,\psi$ được dùng chung cho mọi nút, nên \emph{số tham số không phụ thuộc kích thước đồ thị}, và một mô hình có thể áp dụng cho instance với số item và element bất kỳ.
+
+Nhiều bài toán tối ưu có cấu trúc hai phía tự nhiên. Gasse và cộng sự~\cite{Gasse2019} biểu diễn một bài toán quy hoạch nguyên hỗn hợp bằng đồ thị hai phía biến--ràng buộc để học quy tắc rẽ nhánh. SUKP cũng có cấu trúc hai phía item--element (Hình~\ref{fig:sukp_example}), nên luận văn dùng một GNN trên đồ thị này. Chuẩn hóa tầng (layer normalization)~\cite{Ba2016} và kết nối tắt (residual) được dùng để ổn định quá trình học khi xếp chồng nhiều vòng truyền thông điệp.
+
+\section{Học máy cho tối ưu tổ hợp}\label{sec:ml4co}
+
+Bengio, Lodi và Prouvost~\cite{Bengio2021} phân loại các cách kết hợp học máy với tối ưu tổ hợp thành ba nhóm: (i) học máy giải bài toán \emph{từ đầu đến cuối} (end-to-end); (ii) học máy cung cấp thông tin cho thuật toán tối ưu trước khi chạy; và (iii) học máy được gọi \emph{bên trong} thuật toán tối ưu để đưa ra quyết định lặp lại.
+
+Thuộc nhóm thứ nhất, mạng con trỏ (Pointer Networks)~\cite{Vinyals2015} và mô hình attention của Kool và cộng sự~\cite{Kool2019} xây dựng lời giải bài toán định tuyến từng bước. Khalil và cộng sự~\cite{Khalil2017} kết hợp nhúng đồ thị với Q-learning để xây dựng lời giải cho các bài toán trên đồ thị. Các phương pháp này nhanh khi suy luận nhưng thường kém các bộ giải chuyên biệt về chất lượng lời giải trên instance lớn.
+
+Thuộc nhóm thứ ba, Gasse và cộng sự~\cite{Gasse2019} học bắt chước quy tắc rẽ nhánh mạnh (strong branching) trong branch-and-bound bằng GNN trên đồ thị hai phía, vẫn giữ tính chính xác của thuật toán gốc. DeepACO~\cite{Ye2023DeepACO} giữ nguyên giải thuật đàn kiến và chỉ học hàm heuristic $\eta$ dùng trong xác suất xây dựng lời giải, huấn luyện bằng gradient chính sách trên nhiều instance. DeepACO cải thiện các biến thể đàn kiến trên tám bài toán, trong đó có bài toán cái túi nhiều ràng buộc. Các siêu heuristic~\cite{Burke2013}, trong đó có cách tiếp cận Q-learning cho SUKP của Ozsoydan và Gölcük~\cite{Ozsoydan2023}, cũng thuộc họ này nhưng học ở mức chọn thuật toán con thay vì chọn nước đi.
+
+Luận văn thuộc nhóm thứ ba và gần với tinh thần của Gasse và cộng sự cũng như DeepACO: khung tìm kiếm cục bộ E2LS được giữ nguyên, và học máy chỉ thay \emph{một} heuristic viết tay là bước xếp hạng ứng viên của \addstar. So với DeepACO, điểm khác biệt là hàm xếp hạng của luận văn phụ thuộc vào lời giải hiện tại và được tính lại tại mỗi nút tìm kiếm, thay vì được tính một lần cho mỗi instance. Điều này cho phép biểu diễn những quan hệ phụ thuộc trạng thái như trọng số tăng thêm $AW(S,i)$, nhưng có chi phí suy luận lớn hơn. Đánh đổi này được phân tích trong Chương~\ref{ch:chap4}.

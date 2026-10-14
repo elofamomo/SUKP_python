@@ -1,0 +1,21 @@
+# Stage 3: one factor at a time around stage 2's best (dynamic, beta 10, rho 0.01, tau_min 0.2), 20 runs
+base        --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2
+b12         --heuristic dynamic --beta 12 --rho 0.01 --tau-min 0.2
+r0.005      --heuristic dynamic --beta 10 --rho 0.005 --tau-min 0.2
+r0.002      --heuristic dynamic --beta 10 --rho 0.002 --tau-min 0.2
+t0.1        --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.1
+t0.3        --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.3
+t0.5        --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.5
+# alpha 0: no pheromone at all (randomized greedy with the same heuristic), the key ablation
+a0          --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --alpha 0
+a0.5        --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --alpha 0.5
+a2          --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --alpha 2
+a3          --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --alpha 3
+# number of ants at the same total budget (ants x iterations = 20 x max(m, n))
+ants10      --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --ants 10 --iter-factor 2
+ants50      --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --ants 50 --iter-factor 0.4
+ants100     --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --ants 100 --iter-factor 0.2
+gb5         --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --gb-every 5
+gb20        --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --gb-every 20
+rs50        --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --restart 50
+rs200       --heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --restart 200

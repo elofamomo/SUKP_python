@@ -1,0 +1,46 @@
+\clearpage
+\chapter*{Phụ lục A. Hướng dẫn tái lập kết quả}
+\addcontentsline{toc}{chapter}{Phụ lục A. Hướng dẫn tái lập kết quả}
+\setcounter{chapter}{0}
+\renewcommand{\thesection}{A.\arabic{section}}
+\setcounter{section}{0}
+\sloppy
+
+Toàn bộ mã nguồn, dữ liệu và kết quả của luận văn nằm trong kho mã \texttt{SUKP\_python}. Các lệnh dưới đây được chạy từ thư mục gốc của kho, trong môi trường ảo Python đã cài các gói trong \texttt{requirements.txt}.
+
+\section{Biên dịch bộ giải C++}
+
+\begin{lstlisting}[language=bash]
+cmake -S . -B build -DPython_EXECUTABLE=$(which python)
+cmake --build build -j
+\end{lstlisting}
+Lệnh này tạo module \texttt{sukp\_cpp} chứa bộ giải E2LS (thư mục \texttt{cpp\_solver/}).
+
+\section{Huấn luyện bộ xếp hạng}
+
+\begin{lstlisting}[language=bash]
+python train_ranker.py --samples data/addback_samples.pt --epochs 30 \
+    --out checkpoints/addback_ranker.pt
+\end{lstlisting}
+Lệnh này sinh 48 instance ngẫu nhiên, thu nhãn bằng tìm kiếm vét cạn, huấn luyện mạng và lưu checkpoint có hàm mất mát kiểm định nhỏ nhất. Nhật ký huấn luyện của luận văn được lưu tại \texttt{results\_csv/train\_ranker.log}.
+
+\section{Huấn luyện DQN trên một instance}
+
+\begin{lstlisting}[language=bash]
+python train.py --config helper/config.yaml
+\end{lstlisting}
+Instance và siêu tham số được khai báo trong \texttt{helper/config.yaml}. Sổ tay \texttt{colab\_train.ipynb} chạy cùng các lệnh trên GPU của Google Colab cho toàn bộ bộ dữ liệu.
+
+\section{Đánh giá trên 60 instance chuẩn}
+
+\begin{lstlisting}[language=bash]
+python eval_rankers.py --iterations 1000 --seeds 1 2 3 \
+    --out results_csv/rankers_iter1000.csv
+python eval_rankers.py --time 30 --seeds 1 2 3 \
+    --out results_csv/rankers_time30.csv
+python thesis/make_results.py
+\end{lstlisting}
+Hai lệnh đầu chạy bộ giải với luật tỉ số và với bộ xếp hạng học được, ở chế độ cùng số bước và cùng thời gian. Lệnh cuối sinh các bảng và hình của Chương~\ref{ch:chap4} từ các tệp CSV. Để chạy bộ giải trên instance khai báo trong \texttt{helper/config.yaml} với một hàm xếp hạng cụ thể, dùng \texttt{--ranker ratio} (luật tỉ số của bài báo), \texttt{--ranker network} (bộ xếp hạng học bắt chước) hoặc \texttt{--ranker dqn} (DQN đã huấn luyện cho instance đó):
+\begin{lstlisting}[language=bash]
+python play.py --ranker network --time 30
+\end{lstlisting}

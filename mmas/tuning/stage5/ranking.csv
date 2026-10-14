@@ -1,0 +1,13 @@
+config,gap_mean_%,gap_best_%,bks_hits,time_s,options
+gb2_b12,1.335,0.714,4,1.495,"--heuristic dynamic --rho 0.01 --tau-min 0.2 --gb-every 2 --beta 12"
+gb2_r0.01_t0.1,1.339,0.694,4,1.477,"--heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.1 --gb-every 2"
+gb1_r0.02_t0.3,1.415,0.481,4,1.450,"--heuristic dynamic --beta 10 --rho 0.02 --tau-min 0.3 --gb-every 1"
+gb2_rs500,1.419,0.745,4,1.461,"--heuristic dynamic --rho 0.01 --tau-min 0.2 --gb-every 2 --beta 10 --restart 500"
+gb2_r0.01_t0.2,1.420,0.745,4,1.470,"--heuristic dynamic --rho 0.01 --tau-min 0.2 --gb-every 2 --beta 10"
+gb2_rs250,1.423,0.745,4,1.464,"--heuristic dynamic --rho 0.01 --tau-min 0.2 --gb-every 2 --beta 10 --restart 250"
+gb2_b15,1.430,0.675,4,1.424,"--heuristic dynamic --rho 0.01 --tau-min 0.2 --gb-every 2 --beta 15"
+gb1_r0.01_t0.2,1.482,0.540,4,1.459,"--heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --gb-every 1"
+gb1_rs250,1.505,0.540,4,1.467,"--heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --gb-every 1 --restart 250"
+gb2_rs100,1.635,0.806,4,1.445,"--heuristic dynamic --rho 0.01 --tau-min 0.2 --gb-every 2 --beta 10 --restart 100"
+gb1_rs100,1.644,0.696,3,1.460,"--heuristic dynamic --beta 10 --rho 0.01 --tau-min 0.2 --gb-every 1 --restart 100"
+gb2_b8,1.782,0.649,4,1.453,"--heuristic dynamic --rho 0.01 --tau-min 0.2 --gb-every 2 --beta 8"

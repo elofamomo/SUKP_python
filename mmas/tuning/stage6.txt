@@ -1,0 +1,18 @@
+# Stage 6: the six smallest instances (85-100 items), where the tuned setting lost to the old defaults
+default_static --heuristic static --beta 2 --rho 0.1 --tau-min 0.01
+b3_r0.01 --heuristic dynamic --beta 3 --rho 0.01 --tau-min 0.2 --gb-every 2
+b3_r0.02 --heuristic dynamic --beta 3 --rho 0.02 --tau-min 0.2 --gb-every 2
+b3_r0.05 --heuristic dynamic --beta 3 --rho 0.05 --tau-min 0.2 --gb-every 2
+b3_r0.1 --heuristic dynamic --beta 3 --rho 0.1 --tau-min 0.2 --gb-every 2
+b5_r0.01 --heuristic dynamic --beta 5 --rho 0.01 --tau-min 0.2 --gb-every 2
+b5_r0.02 --heuristic dynamic --beta 5 --rho 0.02 --tau-min 0.2 --gb-every 2
+b5_r0.05 --heuristic dynamic --beta 5 --rho 0.05 --tau-min 0.2 --gb-every 2
+b5_r0.1 --heuristic dynamic --beta 5 --rho 0.1 --tau-min 0.2 --gb-every 2
+b8_r0.01 --heuristic dynamic --beta 8 --rho 0.01 --tau-min 0.2 --gb-every 2
+b8_r0.02 --heuristic dynamic --beta 8 --rho 0.02 --tau-min 0.2 --gb-every 2
+b8_r0.05 --heuristic dynamic --beta 8 --rho 0.05 --tau-min 0.2 --gb-every 2
+b8_r0.1 --heuristic dynamic --beta 8 --rho 0.1 --tau-min 0.2 --gb-every 2
+b12_r0.01 --heuristic dynamic --beta 12 --rho 0.01 --tau-min 0.2 --gb-every 2
+b12_r0.02 --heuristic dynamic --beta 12 --rho 0.02 --tau-min 0.2 --gb-every 2
+b12_r0.05 --heuristic dynamic --beta 12 --rho 0.05 --tau-min 0.2 --gb-every 2
+b12_r0.1 --heuristic dynamic --beta 12 --rho 0.1 --tau-min 0.2 --gb-every 2

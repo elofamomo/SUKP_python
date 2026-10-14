@@ -27,4 +27,9 @@ if(SUKP_BUILD_PYTHON)
   pybind11_add_module(sukp_cpp cpp_solver/bindings.cpp)
   target_include_directories(sukp_cpp PRIVATE cpp_solver)
   set_target_properties(sukp_cpp PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+  # Python module aco_cpp (C++ BABC from aco/cpp and MMAS from mmas/, for aco/run.py), written into aco/
+  pybind11_add_module(aco_cpp aco/cpp/bindings.cpp)
+  target_include_directories(aco_cpp PRIVATE cpp_solver aco/cpp mmas)
+  set_target_properties(aco_cpp PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/aco")
 endif()

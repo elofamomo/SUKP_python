@@ -1,0 +1,180 @@
+\documentclass[13pt,a4paper]{report}
+\usepackage[utf8x]{inputenc}
+% \usepackage[vietnamese=nohyphenation]{hyphsubst}
+\usepackage[vietnamese, main=english]{babel}
+\usepackage{titlesec, blindtext, color}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{booktabs}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{titlesec}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{adjustbox}
+\usepackage{array}
+\usepackage{pbox}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{cite}
+
+
+% Unnumbered chapter heading "Chương N. ..." that still sets chapter N, so that \label after it,
+% section/figure/table/equation numbers and \ref all use N
+\newcommand{\mychapter}[2]{
+    \chapter*{#2}
+    \setcounter{chapter}{\numexpr#1-1\relax}
+    \refstepcounter{chapter}
+    \addcontentsline{toc}{chapter}{#2}
+    }
+% \setcounter{tocdepth}{4}
+
+
+\definecolor{gray75}{gray}{0.75}
+\newcommand{\hsp}{\hspace{15pt}}
+\titleformat{\chapter}[hang]{\small\bfseries}{\thechapter\hsp\textcolor{gray75}{|}\hsp}{0pt}{\Huge\bfseries}
+\usepackage[left=3cm,right=2cm,top=2.5cm,bottom=3cm]{geometry}
+\setlength{\parindent}{1cm}
+\usepackage{indentfirst}
+\setlength{\parskip}{6pt}
+\usepackage{sectsty}
+\chapterfont{\centering}
+\renewcommand{\baselinestretch}{1.3} %format distance between lines
+\usepackage{xcolor}
+\usepackage[utf8]{vietnam}
+\usepackage[unicode]{hyperref}
+\hypersetup{
+colorlinks = false,
+linkbordercolor = {white}
+}
+\usepackage{graphicx}
+\usepackage{lmodern}
+\usepackage[font=small,labelfont=bf]{caption} % Required for specifying captions to tables and figures
+\usepackage{bm}
+\usepackage[para]{footmisc}
+\usepackage{amsfonts}
+\usepackage{afterpage}
+\usepackage{tikz}
+\usepackage{pdfpages}
+\usepackage{xspace}
+\usepackage{listings}
+\usepackage{animate}
+
+\usetikzlibrary{calc,arrows.meta,positioning,decorations.pathreplacing}
+\usepackage{frontespizio}
+% \usepackage[perpage]{footmisc}
+\usepackage{perpage}
+\MakePerPage{footnote}
+\usepackage{longtable}
+\usepackage{ragged2e}
+\usepackage{scrextend}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+% format titile chapter section ...
+\titleformat{\chapter}[display]
+{\large}
+{
+	\large\MakeUppercase{\chaptertitlename}~\thechapter}
+{1pc}
+{\titlerule\huge}
+
+\titleformat*{\section}{\normalfont \Large}
+\titleformat*{\subsection}{\normalfont \large}
+
+\lstset{frame=tb,
+  language=python,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\hypersetup{
+    urlcolor=cyan
+}
+
+% Vietnamese names for captions and generated lists
+\addto\captionsenglish{%
+  \renewcommand{\figurename}{Hình}%
+  \renewcommand{\tablename}{Bảng}%
+  \renewcommand{\contentsname}{Mục lục}%
+  \renewcommand{\bibname}{Tài liệu tham khảo}%
+  \renewcommand{\listfigurename}{Danh sách hình vẽ}%
+  \renewcommand{\listtablename}{Danh sách bảng biểu}%
+}
+\floatname{algorithm}{Thuật toán}
+\algrenewcommand\algorithmicrequire{\textbf{Đầu vào:}}
+\algrenewcommand\algorithmicensure{\textbf{Đầu ra:}}
+
+% Diagram styles (shared with the slides)
+\tikzset{
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, font=\small},
+  cbox/.style={box, draw=blue!60!black, fill=blue!8},
+  pbox/.style={box, draw=orange!80!black, fill=orange!12},
+  gbox/.style={box, draw=green!50!black, fill=green!10},
+  itemnode/.style={circle, draw=blue!60!black, fill=blue!10, minimum size=6.5mm, inner sep=0pt, font=\small},
+  elemnode/.style={rectangle, draw=orange!80!black, fill=orange!15, minimum size=6mm, inner sep=0pt, font=\small},
+  chosen/.style={fill=green!25, draw=green!50!black, very thick},
+  arr/.style={-{Stealth[length=2.2mm]}, thick},
+}
+
+% Thesis information: edit here
+\newcommand{\todo}[1]{\textcolor{red}{#1}}
+\newcommand{\tacgia}{Trương Thế Dũng}
+\newcommand{\tacgiaHoa}{TRƯƠNG THẾ DŨNG}
+\newcommand{\tendetai}{TÌM KIẾM CỤC BỘ ĐƯỢC HƯỚNG DẪN BỞI MẠNG NƠ-RON ĐỒ THỊ CHO BÀI TOÁN CÁI TÚI HỢP TẬP}
+\newcommand{\tendetaiEn}{Graph Neural Network-Guided Local Search for the Set-Union Knapsack Problem}
+\newcommand{\nganh}{\todo{[Tên ngành]}}
+\newcommand{\nganhHoa}{\todo{[TÊN NGÀNH]}}
+\newcommand{\chuyennganh}{\todo{[Tên chuyên ngành]}}
+\newcommand{\maso}{\todo{[Mã số]}}
+\newcommand{\gvhd}{\todo{[Học hàm, học vị, họ và tên cán bộ hướng dẫn]}}
+\newcommand{\namhoc}{2026}
+
+% Short names used in the text
+\newcommand{\addstar}{ADD$^{*}$\xspace}
+
+\begin{document}
+%\maketitle
+
+\include{coverpage}
+\include{page2}
+\fontsize{12}{12}\selectfont
+
+\input{declaration}
+\input{ack}
+\input{abstract}
+\include{content}
+\input{abbreviations}
+\include{tableenum}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\input{./chapter1/chapter1.tex}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\input{./chapter2/chapter2.tex}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\input{./chapter3/chapter3.tex}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\input{./chapter4/chapter4.tex}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\input{./chapter5/chapter5.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Tài liệu tham khảo}
+\bibliographystyle{plain}
+\bibliography{reference}
+
+\input{appendix}
+
+\end{document}

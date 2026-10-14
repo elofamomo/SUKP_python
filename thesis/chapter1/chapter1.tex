@@ -1,0 +1,72 @@
+\mychapter{1}{Chương 1. Tổng quan}\label{ch:chap1}
+
+\section{Đặt vấn đề}
+
+Bài toán cái túi (knapsack) là một trong những mô hình kinh điển nhất của tối ưu tổ hợp: chọn một tập con các vật có giá trị sao cho tổng giá trị lớn nhất mà tổng trọng lượng không vượt quá sức chứa của túi~\cite{Kellerer2004}. Trong nhiều ứng dụng thực tế, chi phí của một lựa chọn không phải là tổng chi phí của từng vật một cách độc lập, vì các vật có thể \emph{dùng chung tài nguyên}. Khi đó tài nguyên dùng chung chỉ phải trả một lần. Bài toán cái túi hợp tập (Set-Union Knapsack Problem, SUKP) do Goldschmidt, Nehme và Yu đề xuất năm 1994~\cite{Goldschmidt1994} mô hình hóa đúng tình huống này: mỗi \emph{item} có một lợi nhuận và là một tập các \emph{element} có trọng số; trọng lượng của một lựa chọn là tổng trọng số của \emph{hợp} các element mà các item được chọn phủ lên.
+
+SUKP xuất hiện trong nhiều lĩnh vực như sản xuất linh hoạt~\cite{Goldschmidt1994}, ra quyết định tài chính~\cite{Khuller1999,Kellerer2004}, nén dữ liệu, tối ưu mạng định nghĩa bằng phần mềm và lựa chọn dự án đầu tư~\cite{Wei2019,Zhu2022}. Bài toán là NP-khó: khi không có hai item nào dùng chung element, SUKP trở thành bài toán cái túi 0-1~\cite{Goldschmidt1994,Arulselvan2014}. Vì vậy, với các instance có hàng trăm đến hàng nghìn item, các phương pháp chính xác khó áp dụng, và các thuật toán metaheuristic, đặc biệt là tìm kiếm cục bộ dựa trên tabu~\cite{Wei2019,Wei2021,Zhu2022}, đang cho kết quả tốt nhất.
+
+Các thuật toán tìm kiếm cục bộ tốt nhất hiện nay đều dựa vào những \emph{luật đánh giá viết tay}. Thuật toán E2LS~\cite{Zhu2022}, một trong những phương pháp mạnh nhất cho SUKP, quyết định thêm item nào vào lời giải dựa trên tỉ số giữa lợi nhuận của item và phần trọng số mà item đó làm tăng thêm. Tỉ số này đơn giản, rẻ và hiệu quả, nhưng về bản chất là một đánh giá \emph{tham lam một bước}: nó đo lợi ích tức thời của một nước đi mà không biết nước đi đó mở ra hay đóng lại những khả năng nào ở các bước sau, chẳng hạn khi hai item dùng chung nhiều element nên chọn cùng nhau thì tốt hơn chọn riêng lẻ.
+
+Song song với đó, học máy cho tối ưu tổ hợp đã phát triển mạnh trong khoảng mười năm gần đây~\cite{Bengio2021}. Một hướng đặc biệt hiệu quả là \emph{không thay thế thuật toán tối ưu, mà chỉ học một thành phần của nó}: học quy tắc rẽ nhánh trong branch-and-bound~\cite{Gasse2019}, hay học hàm heuristic trong giải thuật đàn kiến~\cite{Ye2023DeepACO}. Cách tiếp cận này giữ nguyên các đảm bảo và cơ chế tìm kiếm đã được kiểm chứng của thuật toán gốc, đồng thời cho phép mô hình học được những quy luật mà luật viết tay bỏ sót.
+
+Luận văn này theo hướng tiếp cận trên cho SUKP. Câu hỏi nghiên cứu đặt ra là: \emph{có thể học một hàm đánh giá nước đi tốt hơn tỉ số giá trị trên trọng số, và thay nó vào đúng một vị trí trong E2LS, để cải thiện chất lượng tìm kiếm hay không?}
+
+\section{Bài toán cái túi hợp tập}
+
+Hình~\ref{fig:sukp_example} minh họa một instance nhỏ. Có ba item với lợi nhuận $p_1=6$, $p_2=5$, $p_3=4$ và bốn element với trọng số lần lượt là $3,2,4,3$; sức chứa $C=9$. Item 1 phủ $\{e_1,e_2\}$, item 2 phủ $\{e_2,e_3\}$, item 3 phủ $\{e_3,e_4\}$. Nếu tính chi phí theo từng item như bài toán cái túi thông thường, chọn item 1 và 2 tốn $5+6=11>C$. Nhưng trong SUKP, element $e_2$ được hai item dùng chung chỉ tính một lần, nên lời giải $S=\{1,2\}$ có trọng lượng $W(S)=3+2+4=9\le C$ và lợi nhuận $P(S)=11$, là lời giải tối ưu.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.5cm,y=1.2cm]
+  \node[itemnode,chosen] (i1) at (0.67,2.2) {$1$};
+  \node[itemnode,chosen] (i2) at (2.00,2.2) {$2$};
+  \node[itemnode]        (i3) at (3.33,2.2) {$3$};
+  \node[above=0.5mm of i1, font=\scriptsize] {$p_1=6$};
+  \node[above=0.5mm of i2, font=\scriptsize] {$p_2=5$};
+  \node[above=0.5mm of i3, font=\scriptsize] {$p_3=4$};
+  \node[elemnode,chosen] (e1) at (0.00,0) {$e_1$};
+  \node[elemnode,chosen] (e2) at (1.33,0) {$e_2$};
+  \node[elemnode,chosen] (e3) at (2.67,0) {$e_3$};
+  \node[elemnode]        (e4) at (4.00,0) {$e_4$};
+  \node[below=0.5mm of e1, font=\scriptsize] {$w=3$};
+  \node[below=0.5mm of e2, font=\scriptsize] {$w=2$};
+  \node[below=0.5mm of e3, font=\scriptsize] {$w=4$};
+  \node[below=0.5mm of e4, font=\scriptsize] {$w=3$};
+  \foreach \i/\j in {1/1,1/2,2/2,2/3} \draw[green!50!black, very thick] (i\i) -- (e\j);
+  \foreach \i/\j in {3/3,3/4} \draw[gray!70, thick] (i\i) -- (e\j);
+  \node[font=\small, align=left, anchor=west] at (4.6,1.1) {$C=9$\\ $S=\{1,2\}$: $W(S)=9$, $P(S)=11$};
+\end{tikzpicture}
+\caption{Một instance SUKP nhỏ dưới dạng đồ thị hai phía item--element. Item được chọn và các element chúng phủ được tô màu xanh; element $e_2$ dùng chung nên chỉ tính trọng số một lần.}
+\label{fig:sukp_example}
+\end{figure}
+
+Biểu diễn đồ thị hai phía trong Hình~\ref{fig:sukp_example} không chỉ để minh họa. Nó cũng là cấu trúc dữ liệu đầu vào của các mạng nơ-ron đồ thị được dùng trong luận văn (Chương~\ref{ch:chap3}): giá trị của việc thêm một item phụ thuộc vào việc các element của nó đã được phủ hay chưa, và được những item nào khác dùng chung.
+
+\section{Mục tiêu và phạm vi nghiên cứu}
+
+Mục tiêu tổng quát của luận văn là xây dựng một bộ giải SUKP kết hợp tìm kiếm cục bộ với học máy, trong đó học máy chỉ đảm nhận một vai trò được xác định rõ, để mọi khác biệt về kết quả có thể quy cho thành phần được học. Cụ thể, luận văn đặt ra các mục tiêu sau:
+\begin{enumerate}
+  \item Cài đặt lại thuật toán E2LS~\cite{Zhu2022} bằng C++ một cách hiệu quả, có giao diện Python, và kiểm chứng chất lượng trên 60 instance chuẩn của SUKP.
+  \item Xác định một điểm cắm (plug-in point) cho học máy trong E2LS: bước xếp hạng các ứng viên tại mỗi nút của toán tử \addstar, nơi bài báo gốc dùng tỉ số giá trị trên trọng số.
+  \item Thiết kế một mạng nơ-ron đồ thị trên đồ thị hai phía item--element, có số tham số không phụ thuộc kích thước instance.
+  \item Huấn luyện hàm xếp hạng theo hai cách: (i) học tăng cường bằng DQN trên từng instance, và (ii) học bắt chước từ các nhãn tối ưu được sinh bằng tìm kiếm vét cạn trên các instance sinh ngẫu nhiên.
+  \item Đánh giá hàm xếp hạng học được so với luật tỉ số gốc về chất lượng xếp hạng và chi phí suy luận, và xây dựng quy trình so sánh hai hàm xếp hạng trên bộ chuẩn ở cùng số bước và cùng thời gian chạy.
+\end{enumerate}
+
+Về phạm vi, luận văn chỉ xét SUKP (không xét biến thể BMCP), dùng bộ 60 instance chuẩn gồm Set I~\cite{He2018} và Set II~\cite{Wei2021}, và chỉ thay đổi bước xếp hạng ứng viên của \addstar; các thành phần khác của E2LS (chọn item để bỏ, danh sách tabu, khởi tạo lại) được giữ nguyên. Toàn bộ thực nghiệm chạy trên một máy tính xách tay, không dùng GPU, nên ngân sách thời gian ngắn hơn đáng kể so với các công bố trước (Chương~\ref{ch:chap4}).
+
+\section{Đóng góp của luận văn}
+
+Các đóng góp chính của luận văn gồm:
+\begin{itemize}
+  \item Một bản cài đặt E2LS bằng C++17 với trạng thái tăng dần (incremental), danh sách tabu bằng băm Zobrist 64 bit, và module Python (\texttt{sukp\_cpp}) cho phép thay hàm xếp hạng ứng viên bằng một hàm Python bất kỳ. Với một lần chạy 30 giây, bản cài đặt đạt lời giải tốt nhất đã biết trên 17/30 instance của Set I và có khoảng cách trung bình 1.45\% trên Set II.
+  \item Mô hình hóa việc chọn nước đi của tìm kiếm cục bộ thành một quá trình quyết định Markov, với phần thưởng bằng mức cải thiện lời giải tốt nhất, sao cho mục tiêu học trùng với mục tiêu của tìm kiếm cục bộ.
+  \item Một kiến trúc mạng nơ-ron đồ thị cho SUKP với ba loại nút (item, element, nút toàn cục) mà các đặc trưng đầu vào là các đại lượng quen thuộc của bài toán (trọng số tăng thêm, độ phủ của element), được dùng chung cho cả DQN và bộ xếp hạng.
+  \item Một bộ xếp hạng học bắt chước được tham số hóa dưới dạng \emph{hiệu chỉnh} của luật tỉ số gốc: khi chưa huấn luyện, nó xếp hạng giống hệt bài báo, và quá trình học chỉ thay đổi những chỗ có lợi. Trên các instance kiểm định, bộ xếp hạng nâng tỉ lệ chọn đúng ứng viên tối ưu từ khoảng 61\% lên khoảng 71\%.
+  \item Một phân tích hành vi tìm kiếm và chi phí suy luận, cho thấy khởi tạo lại chiếm tới 21--44\% số bước trên các instance nhỏ và việc gọi mạng tại mỗi nút \addstar làm bước tìm kiếm chậm đi khoảng 6 lần trên instance lớn nhất; từ đó đề xuất các hướng cải tiến cụ thể.
+\end{itemize}
+
+\section{Cấu trúc luận văn}
+
+Phần còn lại của luận văn được tổ chức như sau. Chương~\ref{ch:chap2} trình bày cơ sở lý thuyết: định nghĩa hình thức của SUKP, các thuật toán đã có, tìm kiếm cục bộ và tabu, học tăng cường, mạng nơ-ron đồ thị và các hướng học máy cho tối ưu tổ hợp. Chương~\ref{ch:chap3} trình bày phương pháp đề xuất: bộ giải E2LS cài đặt bằng C++, điểm cắm học máy, kiến trúc mạng đồ thị và hai phương án huấn luyện. Chương~\ref{ch:chap4} trình bày thiết lập và kết quả thực nghiệm. Chương~\ref{ch:chap5} tổng kết luận văn và đề xuất các hướng phát triển.

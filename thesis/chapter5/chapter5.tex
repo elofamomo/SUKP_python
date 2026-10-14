@@ -1,0 +1,40 @@
+\mychapter{5}{Chương 5. Kết luận và hướng phát triển}\label{ch:chap5}
+
+\section{Kết luận}
+
+Luận văn nghiên cứu việc kết hợp tìm kiếm cục bộ với học máy cho bài toán cái túi hợp tập, theo nguyên tắc giữ nguyên một thuật toán mạnh và chỉ học lại đúng một thành phần của nó. Thành phần được chọn là bước xếp hạng ứng viên của toán tử \addstar trong E2LS, nơi bài báo gốc dùng tỉ số giá trị trên trọng số, một đánh giá tham lam một bước.
+
+Các kết quả chính của luận văn như sau:
+\begin{itemize}
+  \item Luận văn cài đặt lại E2LS bằng C++ với trạng thái tăng dần, danh sách tabu bằng băm Zobrist và giao diện Python cho phép thay hàm xếp hạng. Với một lần chạy 30 giây, bộ giải đạt lời giải tốt nhất đã biết trên 17/30 instance của Set I, không thua các thuật toán quần thể BABC và QL trên instance nào, và có khoảng cách trung bình 1.45\% trên Set II dù ngân sách nhỏ hơn 33 lần so với công bố gốc.
+  \item Luận văn mô hình hóa việc chọn nước đi thành một quá trình quyết định Markov với phần thưởng bằng mức cải thiện lời giải tốt nhất, và thiết kế một mạng nơ-ron đồ thị trên đồ thị hai phía item--element có số tham số không phụ thuộc kích thước instance. Mạng này được dùng chung cho hai phương án huấn luyện: DQN trên từng instance và bộ xếp hạng học bắt chước.
+  \item Bộ xếp hạng học bắt chước, được tham số hóa như một hiệu chỉnh của luật tỉ số và huấn luyện từ nhãn tối ưu tính bằng tìm kiếm vét cạn, nâng tỉ lệ chọn đúng ứng viên tối ưu từ 60.9\% lên 71.3\%, nâng hit@2 từ 81.5\% lên 87.6\% và giảm regret 37\% trên các instance kiểm định chưa gặp. Toàn bộ quá trình huấn luyện mất dưới 10 phút trên CPU.
+  \item Phân tích hành vi tìm kiếm cho thấy khởi tạo lại chiếm 21--44\% số bước trên các instance nhỏ, và việc gọi mạng tại mỗi nút \addstar làm bước tìm kiếm chậm đi khoảng 6.4 lần trên instance $1000\times1000$. Hai quan sát này xác định rõ những nơi mà học máy có thể đóng góp nhiều nhất với chi phí thấp nhất.
+\end{itemize}
+
+Nhìn chung, luận văn cho thấy luật xếp hạng viết tay của E2LS còn dư địa cải thiện đáng kể, và dư địa đó có thể học được bằng một mạng đồ thị nhỏ mà không cần thay đổi khung tìm kiếm. Việc chuyển chất lượng xếp hạng tốt hơn thành lời giải tốt hơn trên bộ chuẩn, khi đã tính cả chi phí suy luận, là bước tiếp theo của nghiên cứu.
+
+\section{Hạn chế}
+
+Luận văn còn một số hạn chế cần được ghi nhận rõ:
+\begin{itemize}
+  \item \textbf{Ngân sách thực nghiệm nhỏ.} Do chạy trên một máy tính xách tay, mỗi instance chỉ được chạy một lần trong 30 giây, trong khi các công bố dùng 500 đến 1000 giây và báo cáo kết quả tốt nhất của 10 lần chạy trở lên. Vì vậy luận văn không khẳng định được bộ giải đạt chất lượng ngang các công bố ở ngân sách chuẩn, và một lần chạy chưa cho biết độ biến động giữa các seed.
+  \item \textbf{Bộ xếp hạng chưa được đánh giá trên bộ chuẩn.} Bộ xếp hạng học được mới được đánh giá về chất lượng xếp hạng trên các instance kiểm định sinh ngẫu nhiên; các lượt so sánh với luật tỉ số trên 60 instance chuẩn (Bảng~\ref{tab:ranker_bench}) chưa được hoàn tất.
+  \item \textbf{Phương án DQN chưa được đánh giá đầy đủ.} Quy trình huấn luyện DQN đã được cài đặt và chạy thông, nhưng việc huấn luyện một mô hình cho mỗi trong 60 instance vượt quá khả năng tính toán của thực nghiệm này. Hơn nữa, vì DQN được huấn luyện trên chính instance cần giải, chi phí huấn luyện phải được tính vào thời gian giải nếu muốn so sánh công bằng với các thuật toán khác.
+  \item \textbf{Nhãn chỉ có trên instance nhỏ.} Tìm kiếm vét cạn chỉ khả thi khi $m,n\le200$, nên bộ xếp hạng phải tổng quát hóa lên các instance lớn gấp năm lần kích thước huấn luyện.
+  \item \textbf{Chi phí suy luận.} Mạng được gọi tại mỗi nút \addstar qua giao diện Python, với ma trận kề dày; chi phí này tăng nhanh theo kích thước instance và làm giảm số bước tìm kiếm trong cùng một khoảng thời gian.
+\end{itemize}
+
+\section{Hướng phát triển}
+
+Từ các kết quả và hạn chế trên, luận văn đề xuất các hướng phát triển sau.
+
+\textbf{Giảm chi phí suy luận.} Có thể chạy mạng trực tiếp trong C++ (chẳng hạn qua LibTorch), dùng ma trận kề thưa thay vì dày (mật độ của bộ chuẩn chỉ 10--15\%), và gom nhiều nút \addstar vào một lần gọi mạng. Một hướng triệt để hơn là tách mạng thành hai phần: phần nặng chỉ phụ thuộc instance được tính một lần, còn phần nhẹ phụ thuộc lời giải được tính tại mỗi nút.
+
+\textbf{Điểm item học được tính một lần cho mỗi instance.} DeepACO~\cite{Ye2023DeepACO} cho thấy một heuristic học được, tính một lần cho mỗi instance rồi nhân vào heuristic chuyên gia, đã đủ để cải thiện rõ một metaheuristic mà gần như không tốn chi phí suy luận. Với SUKP, có thể dùng $\sigma(S,i)=\log R(S,i)+\beta\,h_\theta(i)$, trong đó $R(S,i)$ giữ phần phụ thuộc trạng thái và $h_\theta(i)$ là điểm của item do mạng tính một lần. Điểm này có thể dùng trong cả \addstar và thủ tục khởi tạo lại \textsc{Random\_Greedy}; trong thực nghiệm của luận văn, khởi tạo lại chiếm một phần đáng kể số bước tìm kiếm trên Set I.
+
+\textbf{Huấn luyện bằng gradient chính sách.} Thay vì nhãn vét cạn, có thể huấn luyện bộ xếp hạng bằng REINFORCE như DeepACO: lấy mẫu nhiều cách hoàn thiện \addstar từ cùng một trạng thái, dùng lợi nhuận cuối làm phần thưởng và trung bình của các mẫu làm đường cơ sở. Cách này không cần nhãn nên huấn luyện được trực tiếp trên instance cỡ Set II, và có thể thưởng theo lợi nhuận \emph{sau vài bước tìm kiếm cục bộ} để mô hình học đúng điều mà bộ giải cần.
+
+\textbf{Nhiễu loạn có hướng dẫn.} Khi mọi láng giềng đều tabu, thay vì khởi tạo lại từ đầu, có thể bỏ những item có điểm học được thấp nhất khỏi lời giải tốt nhất rồi điền lại bằng \addstar, để tìm kiếm tiếp tục ở gần vùng lời giải tốt.
+
+\textbf{Đánh giá đầy đủ hơn.} Cần đánh giá với ngân sách chuẩn của các công bố (500 và 1000 giây, 10 lần chạy), huấn luyện và đánh giá DQN trên toàn bộ bộ chuẩn có tính chi phí huấn luyện, và mở rộng sang bộ Set III với tới 5000 item và sang bài toán BMCP mà E2LS cũng giải được.

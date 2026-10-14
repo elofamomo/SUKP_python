@@ -1,0 +1,331 @@
+\mychapter{3}{Chương 3. Phương pháp đề xuất}\label{ch:chap3}
+
+Chương này trình bày phương pháp của luận văn. Mục~\ref{sec:overview} mô tả kiến trúc tổng thể. Mục~\ref{sec:e2ls} trình bày thuật toán E2LS và bản cài đặt bằng C++. Mục~\ref{sec:plugin} xác định điểm cắm học máy. Mục~\ref{sec:gnn_arch} trình bày mạng nơ-ron đồ thị dùng chung. Mục~\ref{sec:dqn} và~\ref{sec:ranker} trình bày hai phương án huấn luyện: DQN theo từng instance và bộ xếp hạng học bắt chước. Mục~\ref{sec:compare_methods} so sánh hai phương án.
+
+\section{Kiến trúc tổng thể}\label{sec:overview}
+
+Nguyên tắc thiết kế của luận văn là \emph{chỉ thay đúng một thành phần} của một thuật toán tìm kiếm cục bộ mạnh. Toàn bộ khung E2LS được giữ nguyên: cách chọn item để bỏ, danh sách tabu, quy tắc chấp nhận lời giải và cơ chế khởi tạo lại. Mạng nơ-ron chỉ làm một việc: chấm điểm các ứng viên tại mỗi nút của toán tử \addstar. Nhờ đó, mọi khác biệt về kết quả giữa bộ giải gốc và bộ giải có học máy đều có thể quy cho hàm xếp hạng.
+
+Hình~\ref{fig:pipeline} minh họa quy trình hai pha. Ở pha ngoại tuyến (offline), một mạng nơ-ron đồ thị được huấn luyện và lưu thành tệp checkpoint. Ở pha trực tuyến, bộ giải C++ chạy E2LS; mỗi khi \addstar cần xếp hạng ứng viên, nó gọi một hàm Python, hàm này đưa lời giải hiện tại qua mạng và trả về điểm số.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=6mm]
+  \node[pbox, text width=2.9cm, minimum height=15mm] (data) {\textbf{Dữ liệu huấn luyện}\\ lời giải GA (DQN)\\ hoặc nhãn vét cạn};
+  \node[pbox, text width=2.7cm, minimum height=15mm, right=of data] (train) {\textbf{Huấn luyện}\\ GNN trên đồ thị\\ item--element};
+  \node[pbox, text width=2.3cm, minimum height=15mm, right=of train] (ck) {\textbf{Checkpoint}\\ tham số $\theta$};
+  \node[cbox, text width=3.3cm, minimum height=15mm, right=of ck] (add) {\textbf{E2LS (C++)}\\ \addstar xếp hạng $FC$\\ bằng mạng};
+  \draw[arr] (data) -- (train);
+  \draw[arr] (train) -- (ck);
+  \draw[arr] (ck) -- (add);
+  \draw[decorate, decoration={brace, mirror, amplitude=5pt}, thick]
+    ([yshift=-2mm]data.south west) -- node[below=6pt, font=\small]{pha ngoại tuyến (\texttt{train.py}, \texttt{train\_ranker.py})} ([yshift=-2mm]ck.south east);
+  \draw[decorate, decoration={brace, mirror, amplitude=5pt}, thick]
+    ([yshift=-2mm]add.south west) -- node[below=6pt, font=\small]{pha trực tuyến (\texttt{play.py})} ([yshift=-2mm]add.south east);
+\end{tikzpicture}
+\caption{Quy trình hai pha: huấn luyện mạng ngoại tuyến, sau đó dùng mạng để xếp hạng ứng viên trong \addstar.}
+\label{fig:pipeline}
+\end{figure}
+
+\section{Thuật toán E2LS và bản cài đặt C++}\label{sec:e2ls}
+
+\subsection{Trọng số tăng thêm và tỉ số giá trị trên trọng số}
+
+Gọi $c_j(S)=|\{i\in S: j\in U_i\}|$ là số item trong $S$ phủ element $j$. E2LS dựa trên hai khái niệm~\cite{Zhu2022}. \emph{Trọng số tăng thêm} của item $i$ đối với lời giải $S$ là
+\begin{equation}
+AW(S,i)=
+\begin{cases}
+W(S\cup\{i\})-W(S)=\sum_{j\in U_i,\ c_j(S)=0}w_j, & i\notin S,\\[3pt]
+W(S)-W(S\setminus\{i\})=\sum_{j\in U_i,\ c_j(S)=1}w_j, & i\in S,
+\end{cases}
+\label{eq:aw}
+\end{equation}
+tức là trọng số mới bị phủ khi thêm $i$, hoặc trọng số được giải phóng khi bỏ $i$ (các element chỉ có $i$ phủ). \emph{Tỉ số giá trị trên trọng số} là
+\begin{equation}
+R(S,i)=\frac{p_i}{AW(S,i)} .
+\label{eq:ratio}
+\end{equation}
+Item có $R$ lớn nên được thêm vào hoặc giữ lại; item có $R$ nhỏ nên bị bỏ ra trước. Một item $i\notin S$ có $AW(S,i)=0$ được gọi là item \emph{miễn phí}: thêm nó làm tăng lợi nhuận mà không tăng trọng số, nên luôn được thêm. Lưu ý rằng $R(S,i)$ phụ thuộc vào $S$: cùng một item có thể đắt khi đứng một mình nhưng gần như miễn phí khi các element của nó đã được những item khác phủ.
+
+\subsection{Khởi tạo tham lam ngẫu nhiên}
+
+Thủ tục \textsc{Random\_Greedy}$(t)$ (Thuật toán~\ref{alg:rg}) xây dựng một lời giải đầy đủ: lặp lại việc thêm mọi item miễn phí, rồi lấy mẫu có hoàn lại $t$ ứng viên khả thi và thêm ứng viên có tỉ số $R$ lớn nhất, cho đến khi không còn item nào vừa túi. Tham số $t=\sqrt{\max(m,n)}$ cân bằng giữa chất lượng và độ đa dạng của lời giải khởi tạo~\cite{Zhu2022}. Thủ tục này cũng được dùng để khởi tạo lại khi tìm kiếm bị kẹt.
+
+\begin{algorithm}[H]
+\caption{\textsc{Random\_Greedy}$(t)$}
+\label{alg:rg}
+\begin{algorithmic}[1]
+\Require số lần lấy mẫu $t$
+\Ensure lời giải khả thi $S$
+\State $S\leftarrow\emptyset$
+\Loop
+  \State thêm vào $S$ mọi item $i\notin S$ có $AW(S,i)=0$ (lặp đến điểm bất động)
+  \State $FC\leftarrow\{i\notin S: AW(S,i)>0,\ W(S)+AW(S,i)\le C\}$
+  \If{$FC=\emptyset$} \Return $S$ \EndIf
+  \State lấy mẫu có hoàn lại $t$ item từ $FC$; gọi $i^\star$ là item có $R(S,i)$ lớn nhất
+  \State $S\leftarrow S\cup\{i^\star\}$
+\EndLoop
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Bước tìm kiếm cục bộ và toán tử ADD*}
+
+Mỗi bước tìm kiếm cục bộ (Thuật toán~\ref{alg:ls}) thử bỏ lần lượt từng item trong $r_{num}$ item có tỉ số $R$ nhỏ nhất của lời giải hiện tại $S$. Sau mỗi lần bỏ, toán tử \addstar thêm lại item theo một cây rẽ nhánh: tại mỗi nút, \addstar thêm mọi item miễn phí (bỏ qua những lời giải nằm trong danh sách tabu), tính tập ứng viên khả thi $FC$, \emph{xếp hạng} $FC$, rồi rẽ nhánh trên $a_{num}$ ứng viên đứng đầu (bỏ qua ứng viên dẫn tới lời giải tabu) và đệ quy cho tới khi không còn item nào vừa túi. Mọi lời giải không tabu gặp trên cây đều được so với lời giải tốt nhất của bước, $S_b$. Cuối bước, thuật toán di chuyển tới $S_b$ \emph{kể cả khi} $S_b$ tệ hơn $S$, rồi đưa $S_b$ vào danh sách tabu. Nếu mọi lời giải láng giềng đều tabu, thuật toán khởi tạo lại bằng \textsc{Random\_Greedy}. Với tham số mặc định $r_{num}=a_{num}=2$, mỗi bước khám phá hai cây nhị phân như Hình~\ref{fig:addstar}.
+
+\begin{algorithm}[H]
+\caption{Một bước tìm kiếm cục bộ của E2LS và toán tử \addstar}
+\label{alg:ls}
+\begin{algorithmic}[1]
+\Function{Local\_Search}{$S$}
+  \State $S_b\leftarrow\emptyset$
+  \For{mỗi $v$ trong $r_{num}$ item của $S$ có $R(S,v)$ nhỏ nhất}
+    \State \Call{AddStar}{$S\setminus\{v\}$, $S_b$}
+  \EndFor
+  \State \Return $S_b$ \Comment{$\emptyset$ nếu mọi lời giải gặp được đều tabu}
+\EndFunction
+\Statex
+\Function{AddStar}{$S$, $S_b$}
+  \State thêm vào $S$ mọi item miễn phí mà lời giải thu được không tabu; cập nhật $S_b$
+  \State $FC\leftarrow\{i\notin S: AW(S,i)>0,\ W(S)+AW(S,i)\le C\}$
+  \State $L\leftarrow$ \textbf{xếp hạng}$(FC)$ \Comment{bài báo: giảm dần theo $R(S,i)$; luận văn: theo mạng}
+  \For{mỗi $i$ trong $a_{num}$ phần tử đầu của $L$}
+    \If{$S\cup\{i\}$ không tabu}
+      \State cập nhật $S_b$ bằng $S\cup\{i\}$; \Call{AddStar}{$S\cup\{i\}$, $S_b$}
+    \EndIf
+  \EndFor
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  level distance=11mm,
+  level 1/.style={sibling distance=60mm},
+  level 2/.style={sibling distance=30mm},
+  level 3/.style={sibling distance=14mm},
+  every node/.style={font=\footnotesize},
+  edge from parent/.style={draw, -{Stealth[length=1.6mm]}, gray!70!black}]
+  \node[cbox] {$S$ (đầy)}
+    child {node[pbox] {$S\setminus\{v_1\}$}
+      child {node[gbox] {$+a_1$}
+        child {node {$+a'_1$}}
+        child {node {$+a'_2$}}}
+      child {node[gbox] {$+a_2$}
+        child {node {$\cdots$}}
+        child {node {$\cdots$}}}}
+    child {node[pbox] {$S\setminus\{v_2\}$}
+      child {node[gbox] {$+a_1$}
+        child {node {$\cdots$}}
+        child {node {$\cdots$}}}
+      child {node[gbox] {$+a_2$}
+        child {node {$\cdots$}}
+        child {node {$\cdots$}}}};
+\end{tikzpicture}
+\caption{Cây tìm kiếm của một bước E2LS với $r_{num}=a_{num}=2$. $v_1,v_2$: hai item có tỉ số nhỏ nhất bị thử bỏ; $a_1,a_2$: hai ứng viên được xếp hạng cao nhất tại mỗi nút \addstar. Một nhánh kết thúc khi không còn item nào vừa túi.}
+\label{fig:addstar}
+\end{figure}
+
+Toán tử \addstar có vùng tìm kiếm rộng: với $a_{num}=m$, nó duyệt mọi tổ hợp item có thể thêm và trở thành một thuật toán chính xác cho bài toán con khi các item hiện có được cố định~\cite{Zhu2022}. Việc giới hạn $a_{num}=2$ đánh đổi độ đầy đủ lấy tốc độ, và \emph{thứ tự xếp hạng quyết định nhánh nào được khám phá}. Đây chính là lý do bước xếp hạng là điểm cắm học máy (Mục~\ref{sec:plugin}).
+
+\subsection{Cài đặt bằng C++ và giao diện Python}\label{sec:cpp}
+
+Bộ giải được cài đặt bằng C++17 (biên dịch với \texttt{-O3}) và đóng gói thành module Python \texttt{sukp\_cpp} bằng pybind11. Các điểm chính của bản cài đặt như sau.
+
+\textbf{Trạng thái tăng dần.} Bộ giải lưu $c_j(S)$ cho mọi element. Thêm hoặc bỏ item $i$ chỉ cập nhật các element trong $U_i$, với chi phí $O(|U_i|)$; $W(S)$ chỉ thay đổi khi một $c_j$ chuyển giữa 0 và 1. Nhờ đó $AW(S,i)$ được tính trong $O(|U_i|)$ mà không cần tính lại $W(S)$ từ đầu.
+
+\textbf{Danh sách tabu bằng băm Zobrist.} Thay cho ba vector băm của bài báo gốc, mỗi item được gán một số ngẫu nhiên 64 bit, và giá trị băm của lời giải là phép XOR các số của những item được chọn~\cite{Zobrist1970}. Giá trị này được cập nhật trong $O(1)$ khi thêm hoặc bỏ item, và giá trị băm của $S\cup\{i\}$ được tính trước khi thực sự thêm $i$. Danh sách tabu là một bảng băm chứa mọi lời giải đã được chấp nhận. Với 64 bit, xác suất hai lời giải khác nhau trùng giá trị băm là không đáng kể, nên danh sách tabu gần như chính xác.
+
+\textbf{Một điểm diễn giải.} Mã giả của bài báo gốc kiểm tra tabu trên $S\setminus\{v\}$ trước khi gọi \addstar, nhưng điều kiện này mâu thuẫn với phần mô tả bằng lời. Bản cài đặt theo phần mô tả: \addstar luôn được gọi và chỉ những lời giải mà nó gặp mới được xét điều kiện tabu.
+
+\textbf{Giao diện hàm xếp hạng.} Hàm \texttt{sukp\_cpp.solve(instance, params, scorer)} nhận thêm một đối số tùy chọn \texttt{scorer}. Nếu có, tại mỗi nút \addstar có \emph{nhiều hơn} $a_{num}$ ứng viên, bộ giải gọi \texttt{scorer(selected, candidates)} với vector chọn hiện tại và danh sách ứng viên, nhận lại một điểm cho mỗi ứng viên và sắp xếp giảm dần. Khi $|FC|\le a_{num}$, mọi ứng viên đều được rẽ nhánh nên thứ tự không ảnh hưởng tới tập lời giải được khám phá, và bộ giải không gọi mạng. Cùng một mã nguồn chạy được cả với luật tỉ số gốc và với mạng, nên so sánh giữa hai cách là công bằng về mặt cài đặt. Mọi lời giải trả về được kiểm tra lại bằng một bản cài đặt Python độc lập.
+
+\section{Điểm cắm học máy: xếp hạng ứng viên của ADD*}\label{sec:plugin}
+
+Hình thức hóa, một \emph{hàm xếp hạng} là một hàm $\sigma(S,i)\in\mathbb{R}$ cho mỗi lời giải bộ phận $S$ tại một nút \addstar và mỗi ứng viên $i\in FC(S)$; \addstar rẽ nhánh trên $a_{num}$ ứng viên có $\sigma$ lớn nhất. Bài báo gốc dùng $\sigma(S,i)=R(S,i)$. Đây là một đánh giá \emph{tham lam một bước}: nó đo lợi nhuận trên mỗi đơn vị trọng số tăng thêm ngay lập tức, mà không xét việc thêm $i$ ảnh hưởng thế nào tới các lựa chọn sau. Ví dụ, hai item có tỉ số trung bình nhưng dùng chung nhiều element có thể cùng nhau tốt hơn một item có tỉ số cao nhưng phủ các element riêng biệt.
+
+Một hàm xếp hạng lý tưởng nên ước lượng \emph{giá trị tốt nhất đạt được sau khi thêm $i$ rồi tiếp tục thêm item một cách tối ưu}, tức là một giá trị còn lại (cost-to-go) theo nghĩa quy hoạch động. Luận văn học hàm này theo hai cách. Cách thứ nhất dùng học tăng cường: $\sigma(S,i)=Q_\theta(s,\text{add } i)$ (Mục~\ref{sec:dqn}). Cách thứ hai dùng học có giám sát từ các nhãn tối ưu được tính bằng vét cạn (Mục~\ref{sec:ranker}). Cả hai đều dùng chung một kiến trúc mạng đồ thị (Mục~\ref{sec:gnn_arch}).
+
+\section{Mạng nơ-ron đồ thị trên đồ thị hai phía item--element}\label{sec:gnn_arch}
+
+\subsection{Biểu diễn đồ thị}
+
+Một instance được biểu diễn bằng đồ thị hai phía có $m$ nút item, $n$ nút element và các cạnh cho bởi ma trận quan hệ $R$, cùng với một nút toàn cục $g$ nối với mọi nút. Ma trận $R$ cố định cho mỗi instance, còn đặc trưng của các nút được tính lại từ vector chọn $x_S$ ở mỗi lần gọi mạng. Các đặc trưng đầu vào đều là những đại lượng quen thuộc của SUKP, được chuẩn hóa để không phụ thuộc thang đo của instance. Gọi $\bar p$ và $\bar w$ là lợi nhuận và trọng số trung bình, và $u=\frac{1}{m}\sum_i\sum_{j\in U_i}w_j$ là đơn vị trọng số (tổng trọng số trung bình của các element thuộc một item).
+\begin{itemize}
+  \item \textbf{Item $i$:} đã được chọn hay chưa ($x_i$); lợi nhuận chuẩn hóa $p_i/\bar p$; trọng số tăng thêm khi thêm $AW^{+}_i/u$ và khi bỏ $AW^{-}_i/u$ theo~\eqref{eq:aw}; còn vừa túi hay không; và một độ hiệu quả $\log(p_i/\bar p)-\log\big((AW^{+}_i+AW^{-}_i)/u+0.1\big)$. Bộ xếp hạng (Mục~\ref{sec:ranker}) có thêm đặc trưng ``là ứng viên'' ($i\in FC$).
+  \item \textbf{Element $j$:} trọng số chuẩn hóa $w_j/\bar w$; đã được phủ hay chưa ($c_j>0$); chỉ được phủ đúng một lần hay không ($c_j=1$); và tỉ lệ $c_j/\deg(j)$, với $\deg(j)$ là số item chứa $j$.
+  \item \textbf{Nút toàn cục:} mức sử dụng sức chứa $W(S)/C$; sức chứa còn lại $(C-W(S))/u$; tỉ lệ item được chọn $|S|/m$; và với DQN thêm khoảng cách tới lời giải tốt nhất (Mục~\ref{sec:dqn}).
+\end{itemize}
+Mỗi loại đặc trưng được nhúng thành vector $d=64$ chiều bằng một MLP hai tầng riêng.
+
+\subsection{Truyền thông điệp}
+
+Mạng gồm $K=3$ vòng truyền thông điệp. Ở mỗi vòng, thông tin đi từ item sang element, từ element sang item, rồi tổng hợp lên nút toàn cục (Hình~\ref{fig:gnn}):
+\begin{align}
+h^E_j &\leftarrow \mathrm{LN}\Big(h^E_j+\phi_E\big[\,h^E_j,\ \operatorname*{mean}_{i:\,j\in U_i}h^I_i,\ \operatorname*{mean}_{i\in S:\,j\in U_i}h^I_i\,\big]\Big), \label{eq:mp_elem}\\
+h^I_i &\leftarrow \mathrm{LN}\Big(h^I_i+\phi_I\big[\,h^I_i,\ \operatorname*{mean}_{j\in U_i}h^E_j,\ g\,\big]\Big), \label{eq:mp_item}\\
+g &\leftarrow \mathrm{LN}\Big(g+\phi_G\big[\,g,\ \operatorname*{mean}_{i}h^I_i,\ \operatorname*{mean}_{j}h^E_j\,\big]\Big), \label{eq:mp_glob}
+\end{align}
+trong đó $[\cdot]$ là phép nối vector, $\phi_E,\phi_I,\phi_G$ là các MLP hai tầng, và LN là chuẩn hóa tầng~\cite{Ba2016}. Trong~\eqref{eq:mp_elem}, mỗi element đọc riêng trung bình của \emph{mọi} item chứa nó và trung bình của các item \emph{đã chọn} chứa nó, nên mạng phân biệt được element đã bị phủ bởi những item nào. Có thể hình dung mạng là một phép ``tính $AW$ mở rộng'' được học: thay vì chỉ hỏi element đã được phủ hay chưa, mạng tổng hợp thông tin từ những item cùng chia sẻ element.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=1.2cm,y=1cm]
+  \node[itemnode,chosen] (I1) at (0.6,2.8) {$i_1$};
+  \node[itemnode]        (I2) at (1.8,2.8) {$i_2$};
+  \node[itemnode,chosen] (I3) at (3.0,2.8) {$i_3$};
+  \node[itemnode]        (I4) at (4.2,2.8) {$i_4$};
+  \foreach \k/\x in {1/0.2,2/1.2,3/2.2,4/3.2,5/4.2} \node[elemnode] (E\k) at (\x,0.6) {$e_\k$};
+  \foreach \i/\j in {1/1,1/2,2/2,2/3,3/3,3/4,4/4,4/5,2/5} \draw[gray!70, thick] (I\i) -- (E\j);
+  \node[circle, draw=violet!80!black, fill=violet!15, minimum size=7mm, font=\small] (G) at (2.4,-0.9) {$g$};
+  \draw[arr, blue!60!black] (-0.45,2.8) -- node[left, font=\scriptsize]{(1)} (-0.45,0.6);
+  \draw[arr, orange!80!black] (4.85,0.6) -- node[right, font=\scriptsize]{(2)} (4.85,2.8);
+  \draw[arr, violet!80!black, dashed] (E3) -- node[right, font=\scriptsize]{(3)} (G);
+\end{tikzpicture}
+\caption{Một vòng truyền thông điệp trên đồ thị hai phía: (1) item gửi tới element, (2) element gửi tới item, (3) tổng hợp lên nút toàn cục $g$. Item màu xanh lá là item đã được chọn.}
+\label{fig:gnn}
+\end{figure}
+
+Đầu ra được tính bởi các MLP \emph{dùng chung cho mọi item}, nhận đầu vào $[h^I_i, g]$. Vì mọi tham số đều dùng chung giữa các nút, số tham số không phụ thuộc $m$ hay $n$, và cùng một checkpoint có thể chạy trên instance với kích thước bất kỳ. Ma trận kề được lưu dưới dạng dày, nên mỗi vòng truyền thông điệp tốn $O(mnd)$ phép tính; với $m=n=1000$ đây là chi phí chính của mỗi lần gọi mạng.
+
+\section{Phương án 1: DQN huấn luyện trên từng instance}\label{sec:dqn}
+
+\subsection{Mô hình hóa quá trình quyết định Markov}
+
+Phương án thứ nhất mô hình hóa tìm kiếm cục bộ như một MDP và học $Q_\theta$ bằng DQN~\cite{Mnih2015}. Bảng~\ref{tab:dictionary} đối chiếu các khái niệm học tăng cường với ngôn ngữ của tìm kiếm cục bộ.
+
+\begin{table}[H]
+\centering
+\caption{Đối chiếu khái niệm học tăng cường với tìm kiếm cục bộ.}
+\label{tab:dictionary}
+\small
+\begin{tabular}{p{3.5cm}p{4.6cm}p{5.6cm}}
+\toprule
+\textbf{Học tăng cường} & \textbf{Tìm kiếm cục bộ} & \textbf{Trong luận văn}\\
+\midrule
+Trạng thái $s$ & Lời giải hiện tại & $(x_S, g)$ \\
+Hành động $a$ & Một nước đi & Thêm hoặc bỏ một item \\
+Phần thưởng $r$ & Mức cải thiện sau một nước & Mức cải thiện lời giải tốt nhất \\
+Episode & Một lượt tìm kiếm từ một lời giải đầu & 100 nước từ một lời giải GA \\
+$Q(s,a)$ & Giá trị còn lại của nước đi & Điểm xếp hạng ứng viên của \addstar \\
+Thăm dò & Đa dạng hóa & $\varepsilon$-greedy, softmax \\
+$\gamma$ & Trọng số cho cải thiện ở xa & $0.99$, tầm nhìn khoảng 100 bước \\
+Che hành động & Chỉ xét nước khả thi & Che nước vượt sức chứa \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Trạng thái.} $s=(x_S,g)$, với $x_S\in\{0,1\}^m$ là vector chọn và
+\begin{equation}
+g=\frac{P_{best}-P(S)}{\bar p}
+\end{equation}
+là khoảng cách tới lời giải tốt nhất của episode. Thành phần $g$ là cần thiết vì phần thưởng phụ thuộc vào $P_{best}$: nếu thiếu nó, cùng một vector $x_S$ có thể có giá trị khác nhau và trạng thái không còn tính Markov.
+
+\textbf{Hành động.} Có $2m$ hành động: thêm item $i$ (nếu $i\notin S$ và còn vừa túi) hoặc bỏ item $i$ (nếu $i\in S$). Các hành động không khả thi bị che. Sau mỗi nước đi thành công, nước đi ngược lại bị cấm trong 30 bước, tức là một danh sách tabu theo thuộc tính. Mạng có thêm một đầu ra ``dừng'' nhưng đầu ra này luôn bị che khi chọn hành động.
+
+\textbf{Phần thưởng.} Chỉ những lời giải tốt nhất mới được thưởng:
+\begin{equation}
+r_t=\frac{\max\big(0,\ P(S_{t+1})-P_{best}\big)}{\bar p},
+\qquad\text{sau đó}\quad P_{best}\leftarrow\max\big(P_{best},P(S_{t+1})\big).
+\label{eq:reward}
+\end{equation}
+Tổng phần thưởng của một episode có dạng tổng lồng nhau (telescoping) và bằng đúng $(P_{best}^{\text{cuối}}-P_{best}^{\text{đầu}})/\bar p$, tức mức cải thiện lời giải tốt nhất. Như vậy \emph{mục tiêu học trùng với mục tiêu của tìm kiếm cục bộ}. Việc bỏ item không bị phạt, nên tác tử được phép đi qua lời giải tệ hơn như tìm kiếm tabu. Tác tử cũng không thể kiếm thưởng bằng cách đi vòng: bỏ rồi thêm lại cùng một item không tạo ra lời giải tốt nhất mới.
+
+\subsection{Lời giải khởi đầu bằng giải thuật di truyền}
+
+Mỗi episode bắt đầu từ một lời giải khác nhau do một giải thuật di truyền (GA) nhị phân sinh ra, dùng thư viện MEALPY~\cite{VanThieu2023}: quần thể 50, 100 thế hệ, chọn lọc tournament kích thước 10, lai ghép đồng nhất với xác suất 0.9 và đột biến lật bit với xác suất 0.4. Một cá thể được giải mã bằng cách thêm lần lượt các item có bit 1 và bỏ qua item không còn vừa túi, nên mọi cá thể đều khả thi. Lý do dùng GA là \emph{phân phối huấn luyện phải khớp với phân phối sử dụng}: tìm kiếm cục bộ thực tế luôn làm việc quanh các lời giải gần đầy và chất lượng cao, nên nếu tác tử chỉ học từ lời giải ngẫu nhiên, hàm $Q$ sẽ không chính xác ở đúng vùng mà nó được dùng. Mỗi instance có 1000 lần chạy GA độc lập, cho 1000 lời giải khởi đầu vừa tốt vừa đa dạng.
+
+\subsection{Huấn luyện}
+
+Mạng $Q_\theta$ có hai đầu ra cho mỗi item, $Q(s,\text{add } i)=\psi_{add}[h^I_i,g]$ và $Q(s,\text{remove } i)=\psi_{rem}[h^I_i,g]$, được huấn luyện bằng hàm mất mát~\eqref{eq:dqn}. Khi tính đích Bellman, phép lấy max chỉ chạy trên các hành động khả thi ở trạng thái kế tiếp, nên các đầu ra không khả thi không bao giờ được dùng làm đích. Các siêu tham số được tóm tắt trong Bảng~\ref{tab:dqn_params}. Với $\gamma=0.99$, tầm nhìn hiệu dụng $1/(1-\gamma)=100$ bước, bằng đúng độ dài một episode.
+
+\begin{table}[H]
+\centering
+\caption{Siêu tham số của DQN.}
+\label{tab:dqn_params}
+\small
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Tham số} & \textbf{Giá trị}\\
+\midrule
+Số episode / số bước mỗi episode & 1000 / 100 \\
+Bộ nhớ phát lại / kích thước batch & $10^4$ chuyển tiếp / 128 \\
+Cập nhật mạng đích & mỗi 5 episode \\
+Hệ số chiết khấu $\gamma$ & 0.99 \\
+Tối ưu hóa & Adam~\cite{Kingma2015}, tốc độ học $10^{-3}$ \\
+Thăm dò & $\varepsilon_0=1$, nhân $0.99$ sau mỗi episode; ngoài ra lấy mẫu theo $\mathrm{softmax}(Q/\tau)$, $\tau=5$ \\
+Tabu theo thuộc tính & 30 bước \\
+Kiến trúc & $d=64$, $K=3$ vòng truyền thông điệp \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sử dụng trong ADD*}
+
+Sau khi huấn luyện, \addstar xếp hạng ứng viên theo
+\begin{equation}
+\sigma_{\text{DQN}}(S,i)=Q_\theta\big((x_S,0),\ \text{add } i\big).
+\end{equation}
+Khoảng cách $g$ được đặt bằng 0 vì \addstar chỉ thêm item: với $g=0$, mọi phần tăng lợi nhuận đều được tính là phần thưởng ngay, nên $Q$ đo đúng lợi ích của việc thêm. Cần lưu ý rằng DQN học trên quỹ đạo thêm/bỏ của chính nó chứ không phải trên cây \addstar, nên $Q(s,\text{add } i)$ chỉ là một xấp xỉ của đại lượng mà \addstar cần. Đây là một giả thuyết cần kiểm chứng bằng thực nghiệm.
+
+\section{Phương án 2: bộ xếp hạng học bắt chước tìm kiếm vét cạn}\label{sec:ranker}
+
+Phương án thứ hai dựa trên một quan sát: với riêng quyết định của \addstar, ta \emph{có thể tính chính xác} ứng viên tốt nhất trên các instance nhỏ bằng tìm kiếm vét cạn. Do đó có thể học hàm xếp hạng bằng học có giám sát, tránh được sự không khớp giữa bài toán huấn luyện và bài toán sử dụng của DQN.
+
+\subsection{Sinh nhãn bằng tìm kiếm vét cạn}
+
+Với một lời giải bộ phận $S$ tại một nút \addstar, định nghĩa giá trị hoàn thiện tối ưu
+\begin{equation}
+V(S)=\max\big\{P(T):\ T\supseteq S,\ W(T)\le C\big\},
+\label{eq:completion}
+\end{equation}
+tức lợi nhuận tốt nhất đạt được khi chỉ được thêm item vào $S$. $V(S)$ chính là kết quả của \addstar với $a_{num}=\infty$ (không tính tabu). Nhãn cho ứng viên $i\in FC(S)$ là $V(S\cup\{i\})$; ứng viên tối ưu là $\arg\max_i V(S\cup\{i\})$. $V$ được tính bằng tìm kiếm theo chiều sâu có ghi nhớ (memoization) theo giá trị băm của lời giải, với giới hạn $2\times10^5$ nút cho mỗi nhãn; nhãn nào vượt giới hạn bị loại.
+
+Dữ liệu được thu thập trong lúc chạy E2LS (với luật tỉ số) để các trạng thái được gán nhãn có cùng phân phối với trạng thái gặp khi tìm kiếm thật. Ở mỗi lần thử bỏ một item, với xác suất 0.05, bộ giải gán nhãn cho các quyết định dọc theo đường đi tối ưu: tại trạng thái hiện tại, thêm các item miễn phí, tính $FC$ và nhãn của mọi ứng viên, lưu mẫu $(x_S, FC, \{V(S\cup\{i\})\}_{i\in FC})$ nếu $|FC|\ge2$, rồi đi theo ứng viên tối ưu và lặp lại. Việc gán nhãn dùng một bộ sinh số ngẫu nhiên riêng, nên không làm thay đổi quỹ đạo tìm kiếm.
+
+\textbf{Instance huấn luyện.} Để 60 instance chuẩn hoàn toàn không xuất hiện khi huấn luyện, dữ liệu được sinh trên các instance ngẫu nhiên có cùng cấu trúc với bộ chuẩn: mỗi item phủ mỗi element với xác suất $\alpha$ (và phủ ít nhất một element), lợi nhuận và trọng số là số nguyên ngẫu nhiên đều trong $[1,500]$, và $C=\lfloor\beta\sum_jw_j\rfloor$. Sáu kích thước $m\times n\in\{85\times100,\ 100\times85,\ 100\times100,\ 185\times200,\ 200\times185,\ 200\times200\}$ với hai cặp $(\alpha,\beta)$ của bộ chuẩn, mỗi cấu hình 4 instance, cho tổng cộng 48 instance. Trên mỗi instance, E2LS chạy 2000 bước và thu tối đa 300 mẫu. 20\% số instance (10 instance) được giữ lại làm tập kiểm định; việc chia được thực hiện theo instance chứ không theo mẫu, để đo khả năng tổng quát hóa sang instance chưa gặp.
+
+\subsection{Mô hình và hàm mất mát}
+
+Bộ xếp hạng dùng kiến trúc ở Mục~\ref{sec:gnn_arch} (không có đặc trưng khoảng cách $g$) và cho điểm
+\begin{equation}
+\sigma_{\text{net}}(S,i)=\underbrace{\log\frac{p_i/\bar p}{AW(S,i)/u}}_{\text{luật tỉ số của bài báo}}+\underbrace{\psi\big[h^I_i,\ g\big]}_{\text{hiệu chỉnh học được}} .
+\label{eq:ranker}
+\end{equation}
+Số hạng thứ nhất bằng $\log R(S,i)$ cộng một hằng số, nên xếp hạng theo nó trùng với xếp hạng của bài báo. Tầng cuối của $\psi$ được khởi tạo bằng 0, nên \emph{một mô hình chưa huấn luyện xếp hạng giống hệt E2LS gốc}, và quá trình học chỉ thay đổi thứ tự ở những chỗ có lợi, chẳng hạn những item mà element của chúng chồng lấn với các item khác. Cách tham số hóa này đóng vai trò như một ràng buộc mềm giữ mô hình gần với heuristic chuyên gia.
+
+Với một mẫu có tập ứng viên $FC$, gọi $\mathcal{O}\subseteq FC$ là tập ứng viên tối ưu (có thể có nhiều ứng viên cùng giá trị). Hàm mất mát là entropy chéo theo danh sách (listwise)~\cite{Cao2007} giữa phân phối softmax của điểm và phân phối đều trên $\mathcal{O}$:
+\begin{equation}
+\mathcal{L}=-\sum_{i\in FC}\frac{\mathbb{1}[i\in\mathcal{O}]}{|\mathcal{O}|}\,\log\frac{\exp\sigma_{\text{net}}(S,i)}{\sum_{k\in FC}\exp\sigma_{\text{net}}(S,k)} .
+\label{eq:listwise}
+\end{equation}
+
+Ba chỉ số được dùng để đánh giá, cho cả bộ xếp hạng học được và luật tỉ số: (i) \textbf{top-1}, tỉ lệ mẫu mà ứng viên xếp đầu là tối ưu; (ii) \textbf{hit@2}, tỉ lệ mẫu mà ít nhất một trong hai ứng viên đầu là tối ưu, phù hợp với $a_{num}=2$; (iii) \textbf{regret}, mức mất mát tương đối $(V^\star-V_{\text{top-1}})/V^\star$ khi chọn ứng viên xếp đầu.
+
+Mô hình được huấn luyện 30 epoch bằng Adam với tốc độ học $10^{-3}$, batch 32 mẫu (mỗi batch chỉ chứa mẫu của một instance), cắt chuẩn gradient tại 1.0, $d=64$ và $K=3$. Checkpoint có hàm mất mát kiểm định nhỏ nhất được giữ lại. Khi sử dụng, một checkpoint duy nhất được dùng cho mọi instance.
+
+\section{So sánh hai phương án}\label{sec:compare_methods}
+
+Bảng~\ref{tab:two_methods} tóm tắt sự khác nhau giữa hai phương án.
+
+\begin{table}[H]
+\centering
+\caption{So sánh hai phương án học hàm xếp hạng.}
+\label{tab:two_methods}
+\small
+\begin{tabular}{p{3.4cm}p{5.4cm}p{5.4cm}}
+\toprule
+ & \textbf{DQN (Phương án 1)} & \textbf{Bộ xếp hạng (Phương án 2)}\\
+\midrule
+Tín hiệu học & Cải thiện lời giải tốt nhất (phần thưởng) & Ứng viên tối ưu tính bằng vét cạn (nhãn) \\
+Bài toán được học & Thêm/bỏ một item trên quỹ đạo riêng & Đúng quyết định của \addstar \\
+Phạm vi mô hình & Một mô hình cho mỗi instance & Một mô hình cho mọi instance \\
+Dữ liệu huấn luyện & Chính instance cần giải & Instance sinh ngẫu nhiên, $m,n\le200$ \\
+Chi phí huấn luyện & Lặp lại cho mỗi instance & Trả một lần \\
+Khi chưa huấn luyện & Tùy ý (tham số khởi tạo ngẫu nhiên) & Trùng luật tỉ số của bài báo \\
+Hạn chế chính & Không khớp giữa huấn luyện và sử dụng & Nhãn chỉ tính được trên instance nhỏ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Về lý thuyết, DQN có ưu điểm là học được giá trị nhiều bước mà không cần nhãn, nhưng chi phí huấn luyện phải trả lại cho từng instance và phải được tính vào thời gian giải nếu so sánh công bằng. Bộ xếp hạng học đúng quyết định mà \addstar cần và được huấn luyện một lần, nhưng nhãn vét cạn chỉ tính được trên instance nhỏ, nên mô hình phải tổng quát hóa từ $m,n\le200$ lên tới $m,n=1000$. Chương~\ref{ch:chap4} trình bày kết quả của bộ giải gốc trên 60 instance chuẩn, kết quả huấn luyện của phương án thứ hai và chi phí suy luận của việc xếp hạng bằng mạng.
